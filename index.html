@@ -267,7 +267,10 @@ const ADMIN=new URLSearchParams(location.search).has("admin");
 const keyHdr=()=>{try{const k=localStorage.getItem("uploadKey");return k?{"x-upload-key":k}:{}}catch(e){return {}}};
 async function api(path,opt={},retry=true){
   const r=await fetch("/api/"+path,{...opt,headers:{...(opt.headers||{}),...keyHdr()},cache:"no-store"});
-  if(r.status===401&&retry){const k=prompt("Enter the upload password:");if(k){try{localStorage.setItem("uploadKey",k)}catch(e){}return api(path,opt,false)}}
+  if(r.status===401){try{localStorage.removeItem("uploadKey")}catch(e){}
+    if(retry!==false){const n=typeof retry==="number"?retry:3;
+      const k=(prompt(n<3?"Wrong password. Try again ("+n+" tries left):":"Enter the upload password:")||"").trim();
+      if(k){try{localStorage.setItem("uploadKey",k)}catch(e){}return api(path,opt,n>1?n-1:false)}}}
   if(!r.ok){let m="Server error "+r.status;try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}
   return r;
 }
