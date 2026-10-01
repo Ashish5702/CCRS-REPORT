@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weekly complaint comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --paper:#F3F4F2; --surface:#FFFFFF; --ink:#1C2127; --muted:#5E6670; --line:#D8DCE0; --tint:#ECEEF0;
+  --asphalt:#2A2F36; --asphalt-ink:#F2F3F4; --lane:#F2C230; --lane-soft:#FDF3D2;
+  --up:#B3412D; --up-bg:#FBEAE6; --down:#2C7549; --down-bg:#E5F3EA; --focus:#1F6FD1;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15181C; --surface:#1E2227; --ink:#E7E9EB; --muted:#9AA2AB; --line:#343A41; --tint:#262B31;
+    --asphalt:#0E1114; --asphalt-ink:#F2F3F4; --lane-soft:#3A3220;
+    --up:#EE8672; --up-bg:#3A221D; --down:#72C592; --down-bg:#1B3325; --focus:#6AA8F0;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15181C; --surface:#1E2227; --ink:#E7E9EB; --muted:#9AA2AB; --line:#343A41; --tint:#262B31;
+  --asphalt:#0E1114; --asphalt-ink:#F2F3F4; --lane-soft:#3A3220;
+  --up:#EE8672; --up-bg:#3A221D; --down:#72C592; --down-bg:#1B3325; --focus:#6AA8F0;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+header.band{background:var(--asphalt);color:var(--asphalt-ink);position:relative}
+header.band .in{max-width:1180px;margin:0 auto;padding:22px 20px 26px}
+header.band h1{margin:0;font-size:clamp(22px,3.2vw,30px);font-weight:800;letter-spacing:-.01em;line-height:1.15}
+header.band p{margin:6px 0 0;color:#B9C0C7;font-size:14px}
+header.band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:repeating-linear-gradient(90deg,var(--lane) 0 46px,transparent 46px 74px)}
+main{max-width:1180px;margin:0 auto;padding:20px 20px 60px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.panel + .panel{margin-top:14px}
+h2{font-size:17px;margin:0 0 12px;font-weight:700}
+h3{font-size:15px;margin:22px 0 8px;font-weight:700}
+.muted{color:var(--muted)} .small{font-size:13px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:22px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--lane);background:var(--tint)}
+.drop strong{display:block;font-size:17px;margin-bottom:4px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn:hover{background:var(--tint)}
+.btn.primary{background:var(--asphalt);color:var(--asphalt-ink);border-color:var(--asphalt)}
+.btn.primary:hover{filter:brightness(1.15)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.files{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.files li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
+.files .x{border:none;background:none;cursor:pointer;color:var(--muted);font-size:13px;text-decoration:underline}
+.err{color:var(--up);margin-top:10px;font-size:14px}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 12px 12px;margin:0;min-width:0}
+legend{font-weight:700;font-size:14px;padding:0 4px}
+.dates{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dates input,select{border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--surface);min-width:0}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}
+.ms{position:relative}
+.ms > summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:7px 30px 7px 10px;background:var(--surface);position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms > summary::-webkit-details-marker{display:none}
+.ms > summary::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg)}
+.ms[open] > summary{border-color:var(--ink)}
+.ms > summary .lab{color:var(--muted);font-size:13px;display:block;line-height:1.2}
+.ms > summary .val{font-weight:700}
+.ms.active > summary{background:var(--lane-soft);border-color:var(--lane)}
+.ms .pop{position:absolute;z-index:20;left:0;top:calc(100% + 4px);min-width:100%;width:max-content;max-width:min(420px,88vw);background:var(--surface);border:1px solid var(--ink);border-radius:8px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.ms .acts{display:flex;gap:6px;margin-bottom:6px}
+.ms .opts{max-height:260px;overflow:auto;display:grid;gap:2px}
+.ms label{display:flex;gap:8px;align-items:center;font-size:14px;padding:3px 4px;border-radius:4px;cursor:pointer}
+.ms label:hover{background:var(--tint)}
+.ms .n{color:var(--muted);margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums}
+.ms input[type=search]{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;margin-bottom:6px;background:var(--surface)}
+.active-f{margin-top:10px;font-size:13px;color:var(--muted)}
+.linkbtn{border:none;background:none;padding:0;color:var(--focus);text-decoration:underline;cursor:pointer;font-size:13px}
+.note{margin-top:12px;padding:10px 12px;border-left:4px solid var(--lane);background:var(--tint);border-radius:4px;font-size:14px}
+.tabsbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 12px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--surface);padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
+.tab[aria-selected="true"]{background:var(--asphalt);color:var(--asphalt-ink);border-color:var(--asphalt)}
+.totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:6px}
+.totals > div{background:var(--surface);padding:12px 14px}
+.totals .k{font-size:13px;color:var(--muted)}
+.totals .v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.obs{margin:14px 0 0;padding-left:20px}
+.obs li{margin:4px 0;max-width:85ch}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td.l,th.l{text-align:left}
+td.wrap{white-space:normal;min-width:260px;max-width:520px}
+thead th{background:var(--tint);font-weight:700;font-size:13px}
+tr:last-child td{border-bottom:none}
+tr.cat td{font-weight:700;background:var(--tint)}
+tr.tot td{font-weight:800;border-top:2px solid var(--ink)}
+.chg{font-weight:700} .chg.up{color:var(--up)} .chg.down{color:var(--down)}
+td.hi-up{background:var(--up-bg)} td.hi-down{background:var(--down-bg)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.grid2 h3{margin-top:0}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.pk-ctl{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:14px}
+.pk-ctl label{display:flex;gap:6px;align-items:center}
+tr.pk{cursor:pointer}
+tr.pk:hover td{background:var(--tint)}
+tr.pk td:first-child::before{content:"";display:inline-block;width:6px;height:6px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-right:10px;transition:transform .15s}
+tr.pk.open td:first-child::before{transform:rotate(45deg)}
+tr.det > td{background:var(--paper);padding:0}
+tr.det table{font-size:13px}
+tr.det th{background:transparent}
+.rank{display:inline-block;min-width:1.6em;font-weight:800}
+.bar{display:inline-block;height:8px;background:var(--lane);border-radius:2px;vertical-align:middle;margin-left:8px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--up-bg);color:var(--up)}
+details.rules{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+details.rules > summary{cursor:pointer;padding:10px 14px;font-weight:700}
+details.rules .body{padding:0 14px 14px}
+details.rules textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--paper);font-size:13px;line-height:1.5}
+.tbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 6px;font-size:12px;color:var(--muted)}
+.tbar .btn{padding:3px 10px;font-size:13px}
+.tbar .ok{color:var(--down);font-weight:700}
+table[data-tid]:not([data-nosort]) thead th{cursor:pointer;user-select:none}
+table[data-tid]:not([data-nosort]) thead th:hover{color:var(--focus)}
+table[data-tid] thead th[aria-sort]::after{content:"";display:inline-block;margin-left:6px;border-left:4px solid transparent;border-right:4px solid transparent;vertical-align:middle}
+table[data-tid] thead th[aria-sort="descending"]::after{border-top:6px solid currentColor}
+table[data-tid] thead th[aria-sort="ascending"]::after{border-bottom:6px solid currentColor}
+footer{margin-top:30px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="band"><div class="in">
+  <h1>Weekly complaint comparison</h1>
+  <p>Category-wise, ward-wise and pocket-area report from the AMC Full Complaint export</p>
+</div></header>
+<main>
+  <section class="panel" aria-labelledby="up-h">
+    <h2 id="up-h">Add your export files</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose Excel files">
+      <strong>Drop the Full Complaint Excel files here</strong>
+      <span class="muted">or click to choose. Add this week's and last week's files to compare them.</span>
+    </div>
+    <input type="file" id="fileIn" accept=".xlsx,.xls" multiple hidden>
+    <ul class="files" id="fileList"></ul>
+    <div class="err" id="err" role="alert"></div>
+    <p class="muted small" style="margin:12px 0 0"><span id="syncMsg">Files you add are saved online, so everyone who opens this page sees the same report.</span></p>
+  </section>
+
+  <section class="panel" id="setup" hidden aria-labelledby="set-h">
+    <h2 id="set-h">Report settings</h2>
+    <div class="row2">
+      <fieldset><legend>Previous period</legend><div class="dates">
+        <input type="date" id="aFrom" aria-label="Previous period from"> to <input type="date" id="aTo" aria-label="Previous period to"></div></fieldset>
+      <fieldset><legend>Current period</legend><div class="dates">
+        <input type="date" id="bFrom" aria-label="Current period from"> to <input type="date" id="bTo" aria-label="Current period to"></div></fieldset>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="active-f" id="activeF"></div>
+    <div class="note" id="periodNote" hidden></div>
+  </section>
+
+  <section id="results" hidden>
+    <div class="tabsbar">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="compare" aria-selected="true">Comparison</button>
+        <button class="tab" role="tab" data-tab="pockets" aria-selected="false">Pocket areas</button>
+        <button class="tab" role="tab" data-tab="pivot" aria-selected="false">Weekly pivot</button>
+        <button class="tab" role="tab" data-tab="matrix" aria-selected="false">Ward matrix</button>
+        <button class="tab" role="tab" data-tab="status" aria-selected="false">Status</button>
+      </div>
+      <button class="btn primary" id="dlBtn" disabled>Download Excel report</button>
+    </div>
+    <div id="view"></div>
+    <div class="err" id="dlErr" role="status"></div>
+  </section>
+  <footer>Counts are rows in the export (same as "Count of Complaint No." in a pivot). Files added twice are merged using Token No., so overlapping downloads are not double counted. Pocket areas are worked out from the Location Address text, so treat them as a strong indication rather than an exact count.</footer>
+</main>
+
+<script>
+// ---- pocket-area engine (shared with the page) ----
+const STOP=new Set("ni na nu no ne ma same samne sammukh baju bajuma bajume pase paase pasena pachhal pachad pachhad pachal pachhadi jode thi sudhi to and the of opp near nr behind beside besides agal aagal ke ki ka ahmedabad amdavad ahemdabad gujarat india north zone shop block part vibhag gali galli number gate plot house no flat wing floor ground call citizen main local ni".split(" "));
+const GEN=new Set("cinema line mill villa hotel talav lake bhai ben bhen patel shah cross darwaja road rd marg street lane nagar society colony chali vas vaas park flats apartment apartments bungalow tenament estate complex plaza tower towers residency heights city township row houses market mandir temple school hospital clinic masjid station railway bus stop highway circle rasta char chowk chok corner gam area ward water tank pump petrol cng bank office garden sector industrial".split(" "));
+const QUAL=new Set("new old juni navi nava gam".split(" "));
+let WARDTOK=new Set();
+const VARIANTS=[[/bunglows?|bungalows?|banglow|bangla/g,"bungalow"],[/chawls?|chaali|chalis/g,"chali"],[/gaam|gaon/g,"gam"],[/hansh?pura/g,"hanspura"],[/tenn?[ae]m[ae]n?ts?|tenamnet|tenement/g,"tenament"],[/nobal/g,"noble"],[/sardarnagar/g,"sardar nagar"],[/bapunagar/g,"bapu nagar"],[/kubernagar/g,"kuber nagar"],[/thakkarbapanagar|thakkar bapa nagar/g,"thakkarbapa nagar"],[/appartment/g,"apartment"],[/\bsoc\b|socity|sosayti|societies/g,"society"],[/\bhights\b/g,"heights"],[/vibhag/g,"vibhag"]];
+function tokensOf(s){
+  s=String(s||"").toLowerCase().replace(/\b[0-9a-z]{4}\+[0-9a-z]{2,3}\b/g," ").replace(/\d+/g," ");
+  for(const [re,r] of VARIANTS)s=s.replace(re,r);
+  return s.split(/[,;\n()\/|.]+|\s-\s/).map(seg=>seg.match(/[a-z\u0A80-\u0AFF]+/g)||[]);
+}
+function compactOf(segs){return segs.flat().join("")}
+function candidates(segs,wardKey){
+  const out=new Set();
+  for(const seg of segs){
+    let run=[];
+    const flush=()=>{for(let i=0;i<run.length;i++)for(let n=1;n<=3&&i+n<=run.length;n++){const g=run.slice(i,i+n);
+      const ok=g.some(t=>!GEN.has(t)&&!QUAL.has(t)&&!WARDTOK.has(t))||(g.some(t=>WARDTOK.has(t))&&g.some(t=>QUAL.has(t)));if(!ok)continue;out.add(g.join(" "))}run=[]};
+    for(const t of seg){if(t.length<2||STOP.has(t))flush();else run.push(t)}
+    flush();
+  }
+  return out;
+}
+function parseRules(text){
+  const rules=[];
+  for(const line of String(text||"").split(/\n/)){
+    const i=line.lastIndexOf("=");if(i<0)continue;
+    const name=line.slice(i+1).trim();if(!name)continue;
+    const kws=line.slice(0,i).split(",").map(k=>compactOf(tokensOf(k))).filter(k=>k.length>=3);
+    if(kws.length)rules.push({name,kws});
+  }
+  return rules;
+}
+function titleCase(s){return s.replace(/(^|\s)([a-z])/g,(m,a,b)=>a+b.toUpperCase())}
+function assignAreas(rows,rulesText){
+  const rules=parseRules(rulesText);
+  const byWard=new Map();
+  WARDTOK=new Set();for(const r of rows)for(const t of tokensOf(r.ward).flat())WARDTOK.add(t);["hansol","nikol","ahmedabad"].forEach(t=>WARDTOK.add(t));
+  for(const r of rows){const segs=tokensOf(r.addr);r._compact=compactOf(segs);
+    r._spot=r._compact.slice(0,36);
+    const wk=compactOf(tokensOf(r.ward));r._c=candidates(segs,wk);
+    if(!byWard.has(r.ward))byWard.set(r.ward,[]);byWard.get(r.ward).push(r)}
+  for(const [w,list] of byWard){
+    const df=new Map();for(const r of list)for(const c of r._c)df.set(c,(df.get(c)||0)+1);
+    const N=list.length,cap=Math.max(3,Math.round(N*0.12));
+    for(const r of list){
+      r.areaSrc="auto";
+      const rule=rules.find(ru=>ru.kws.some(k=>r._compact.includes(k)));
+      if(rule){r.area=rule.name;r.areaSrc="rule";continue}
+      let best=null,bs=-1;
+      for(const c of r._c){const d=df.get(c);if(d<2||d>cap)continue;const n=c.split(" ").length;const s=Math.min(d,cap)*(1+0.5*(n-1));
+        if(s>bs||(s===bs&&c.length>best.length)){bs=s;best=c}}
+      r.area=best?titleCase(best):null;
+    }
+  }
+  for(const r of rows){delete r._c;delete r._compact}
+}
+
+
+</script>
+<script>
+(function(){
+const DEFAULT_RULES="shaligram, nandigram, nandi gram, kotarpur = Kotarpur / Nandigram / Shaligram Villa\nnana chiloda, chiloda = Nana Chiloda\nsindhi colony, ambawadi, ambavadi, bhilvas, bhil vas = Sindhi Colony / Ambawadi / Bhilvas\nhanspura, zudio, judiyo = Hanspura (Naroda-Dehgam Road)\nnaroda patiya, st workshop, st work shop, husen nagar, hussain nagar, javan nagar, pulin = Naroda Patiya / ST Workshop\nnaroda gam, valmiki vas, kumbhar vas = Naroda Gam\ngalaxy society = Galaxy Society (ITI Road)\nnava naroda, new naroda = Nava Naroda\nvrajvallabh, vraj vallabh, vraj vallbha, વ્રજવલ્લભ = Vrajvallabhpura (opp. Arvind Mill)\nrmkrupa, ramkrupa = Shree Ramkrupa Nagar\nd colony, ashok mill, ashoka industrial, juni ashok = D Colony / Ashok Mill\ngd high school, prabhakar = GD High School Road / Prabhakar\nprerna school = Prerna School Road\nmahadev nu dehlu, mahadev nu dhelu, mahadev nu dehlu = Mahadev nu Dehlu\nrakhial, rakhiyal, રખિયાલ = Rakhial\nmunicipal industrial estate = Municipal Industrial Estate\nnoble nagar = Noble Nagar";
+const MONTHS={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const PENDING=new Set(["Open","WIP","On Hold","Re Opened"]);
+const FILTERS=[
+  {key:"ward",label:"Ward",get:r=>r.ward},
+  {key:"cat",label:"Problem Category",get:r=>r.cat},
+  {key:"problem",label:"Problem",get:r=>r.problem},
+  {key:"status",label:"Status",get:r=>r.status||"(blank)"},
+  {key:"sla",label:"SLA Status",get:r=>r.sla||"(blank)"}];
+const S={files:[],rows:new Map(),A:{from:"",to:""},B:{from:"",to:""},ex:{},firstLoad:true,tab:"compare",
+  pk:{period:"B",min:2,open:new Set()},rules:DEFAULT_RULES};
+FILTERS.forEach(f=>S.ex[f.key]=new Set());
+/* ---------- shared storage (Netlify) ---------- */
+let SHARED=false;
+const keyHdr=()=>{try{const k=localStorage.getItem("uploadKey");return k?{"x-upload-key":k}:{}}catch(e){return {}}};
+async function api(path,opt={},retry=true){
+  const r=await fetch("/api/"+path,{...opt,headers:{...(opt.headers||{}),...keyHdr()},cache:"no-store"});
+  if(r.status===401&&retry){const k=prompt("Enter the upload password:");if(k){try{localStorage.setItem("uploadKey",k)}catch(e){}return api(path,opt,false)}}
+  if(!r.ok){let m="Server error "+r.status;try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}
+  return r;
+}
+function syncMsg(t){const el=document.getElementById("syncMsg");if(el)el.textContent=t}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function addDays(s,n){const [y,m,d]=s.split("-").map(Number);return ymd(new Date(y,m-1,d+n))}
+function parseDate(v){
+  if(v==null||v==="")return null;
+  if(v instanceof Date&&!isNaN(v))return ymd(v);
+  if(typeof v==="number"){const d=new Date(Math.round((v-25569)*864e5));return ymd(new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()))}
+  const s=String(v).trim();let m;
+  if((m=s.match(/^(\d{1,2})[\s\-\/]+([A-Za-z]{3})[A-Za-z]*[\s\-\/,]+(\d{4})/))){const mo=MONTHS[m[2].toLowerCase()];if(mo!=null)return ymd(new Date(+m[3],mo,+m[1]))}
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)))return ymd(new Date(+m[1],m[2]-1,+m[3]));
+  if((m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/)))return ymd(new Date(+m[3],m[2]-1,+m[1]));
+  return null;
+}
+const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDay(s){if(!s)return"";const [y,m,d]=s.split("-").map(Number);return d+" "+MN[m-1]}
+function fmtRange(p){if(!p.from||!p.to)return"—";if(p.from.slice(0,7)===p.to.slice(0,7))return(+p.from.slice(8))+"–"+fmtDay(p.to);return fmtDay(p.from)+" – "+fmtDay(p.to)}
+const yr=p=>p.to?p.to.slice(0,4):"";
+
+/* ---------- reading files ---------- */
+function parseWorkbook(buf,name){
+  const wb=XLSX.read(buf,{type:"array",cellDates:true});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+  const h=aoa.findIndex(r=>r.some(c=>String(c).trim()==="Complaint No.")&&r.some(c=>String(c).trim()==="Ward"));
+  if(h<0)throw new Error(name+" does not look like a Full Complaint export (no \"Complaint No.\" and \"Ward\" header row).");
+  const meta={};
+  for(let i=0;i<h;i++){const r=aoa[i];const k=String(r[0]||"").trim().replace(/:$/,"");if(k&&r[1]!==""&&r[1]!=null)meta[k]=r[1]}
+  const head=aoa[h].map(c=>String(c).trim());const ix=n=>head.indexOf(n);
+  const miss=["Ward","Complaint No.","Registration Date","Problem Category","Problem"].filter(n=>ix(n)<0);
+  if(miss.length)throw new Error(name+" is missing column(s): "+miss.join(", ")+".");
+  const iW=ix("Ward"),iC=ix("Complaint No."),iT=ix("Token No."),iD=ix("Registration Date"),iPC=ix("Problem Category"),
+        iP=ix("Problem"),iS=ix("Status"),iDep=ix("Department"),iSLA=ix("SLA Status"),iA=ix("Location Address");
+  const g=(r,i)=>i>=0?String(r[i]==null?"":r[i]).trim():"";
+  const rows=[];
+  for(let i=h+1;i<aoa.length;i++){
+    const r=aoa[i];const c=g(r,iC);if(!c)continue;
+    const d=parseDate(r[iD]);if(!d)continue;
+    const tok=g(r,iT);
+    rows.push({key:tok||(c+"|"+d+"|"+g(r,iP)+"|"+i),complaint:c,token:tok,date:d,ward:g(r,iW)||"(blank)",
+      cat:g(r,iPC)||"(blank)",problem:g(r,iP)||"(blank)",status:g(r,iS),dept:g(r,iDep),sla:g(r,iSLA),addr:g(r,iA).replace(/\s+/g," ")});
+  }
+  if(!rows.length)throw new Error(name+" has a header row but no complaint rows with a readable Registration Date.");
+  const from=parseDate(meta["From Date"]),to=parseDate(meta["To Date"]);const ds=rows.map(r=>r.date).sort();
+  return {name,rows,from:from||ds[0],to:to||ds[ds.length-1],zone:meta["Zone"]||""};
+}
+async function addFiles(list){
+  $("err").textContent="";const errs=[];
+  for(const f of list){
+    try{const buf=await f.arrayBuffer();const p=parseWorkbook(buf,f.name);
+      if(SHARED){syncMsg("Uploading "+f.name+"…");
+        try{await api("file?name="+encodeURIComponent(f.name),{method:"PUT",body:buf})}
+        catch(e){errs.push(f.name+" could not be saved online ("+e.message+"). It shows on this PC only.")}}
+      S.files=S.files.filter(x=>x.name!==f.name);S.files.push(p)}
+    catch(e){errs.push(e.message||String(e))}
+  }
+  if(errs.length)$("err").textContent=errs.join(" ");
+  if(SHARED)syncMsg("Saved online. Everyone who opens this page sees these files.");
+  rebuild(true);
+}
+async function loadShared(){
+  syncMsg("Loading shared files…");
+  let list;
+  try{list=await (await api("list")).json();SHARED=true}
+  catch(e){syncMsg("Online storage is not available, so files stay on this PC only.");
+    try{const r=localStorage.getItem("pocketRules");if(r!=null)S.rules=r}catch(e){}
+    return}
+  if(list.rules!=null)S.rules=list.rules;
+  const errs=[];
+  for(const name of list.names){
+    try{const buf=await (await api("file?name="+encodeURIComponent(name))).arrayBuffer();S.files.push(parseWorkbook(buf,name))}
+    catch(e){errs.push(name+": "+(e.message||e))}
+  }
+  if(errs.length)$("err").textContent=errs.join(" ");
+  syncMsg(list.names.length?"Showing "+list.names.length+" shared file(s). Everyone sees the same files.":"No shared files yet. Files you add are saved online for everyone.");
+  if(S.files.length)rebuild(true);
+}
+function rebuild(resetPeriods){
+  S.rows=new Map();for(const f of S.files)for(const r of f.rows)S.rows.set(r.key,r);
+  renderFiles();
+  const has=S.rows.size>0;$("setup").hidden=!has;$("results").hidden=!has;
+  if(!has)return;
+  assignAreas([...S.rows.values()],S.rules);
+  if(resetPeriods)defaultPeriods();
+  if(S.firstLoad){const cats=new Set([...S.rows.values()].map(r=>r.cat));if(cats.has("Road"))cats.forEach(c=>{if(c!=="Road")S.ex.cat.add(c)});S.firstLoad=false}
+  render();
+}
+function defaultPeriods(){
+  const ranges=[...new Map(S.files.map(f=>[f.from+"|"+f.to,{from:f.from,to:f.to}])).values()].sort((a,b)=>a.from<b.from?-1:1);
+  if(ranges.length>=2){S.B={...ranges[ranges.length-1]};S.A={...ranges[ranges.length-2]}}
+  else{
+    const ds=[...S.rows.values()].map(r=>r.date).sort();const max=ds[ds.length-1];
+    const bFrom=ranges.length===1?ranges[0].from:addDays(max,-6);const bTo=ranges.length===1?ranges[0].to:max;
+    const len=Math.round((new Date(bTo)-new Date(bFrom))/864e5);
+    S.B={from:bFrom,to:bTo};S.A={from:addDays(bFrom,-(len+1)),to:addDays(bFrom,-1)};
+    if(len>=13){S.B={from:addDays(bTo,-6),to:bTo};S.A={from:addDays(bTo,-13),to:addDays(bTo,-7)}}
+  }
+  $("aFrom").value=S.A.from;$("aTo").value=S.A.to;$("bFrom").value=S.B.from;$("bTo").value=S.B.to;
+}
+function renderFiles(){
+  $("fileList").innerHTML=S.files.map((f,i)=>`<li><span><strong>${esc(f.name)}</strong><br><span class="muted small">${esc(fmtRange(f))} ${f.from.slice(0,4)}${f.zone?", "+esc(f.zone)+" zone":""}, ${f.rows.length.toLocaleString("en-IN")} rows</span></span><button class="x" data-rm="${i}">Remove</button></li>`).join("");
+}
+
+/* ---------- filters ---------- */
+const inP=(d,p)=>p.from&&p.to&&d>=p.from&&d<=p.to;
+function passes(r,skip){for(const f of FILTERS){if(f.key===skip)continue;if(S.ex[f.key].has(f.get(r)))return false}return true}
+function inAnyPeriod(r){return inP(r.date,S.A)||inP(r.date,S.B)}
+function renderFilters(){
+  const openKey=[...document.querySelectorAll(".ms[open]")].map(d=>d.dataset.key)[0];
+  const qs={};document.querySelectorAll(".ms input[type=search]").forEach(i=>qs[i.dataset.key]=i.value);
+  const all=[...S.rows.values()].filter(inAnyPeriod);
+  $("filters").innerHTML=FILTERS.map(f=>{
+    // options: values present in the loaded periods; problems only from the chosen categories
+    const base=f.key==="problem"?all.filter(r=>!S.ex.cat.has(r.cat)):all;
+    const vals=[...new Set(base.map(f.get))].sort((a,b)=>a.localeCompare(b));
+    const cnt=new Map();for(const r of all)if(passes(r,f.key)){const v=f.get(r);cnt.set(v,(cnt.get(v)||0)+1)}
+    const on=vals.filter(v=>!S.ex[f.key].has(v));
+    const val=on.length===vals.length?"All":on.length===0?"None":on.length===1?on[0]:on.length+" of "+vals.length;
+    const q=qs[f.key]||"";
+    return `<details class="ms${on.length<vals.length?" active":""}" data-key="${f.key}"${openKey===f.key?" open":""}><summary><span class="lab">${esc(f.label)}</span><span class="val">${esc(val)}</span></summary>
+      <div class="pop">${vals.length>10?`<input type="search" placeholder="Search" data-key="${f.key}" value="${esc(q)}" aria-label="Search ${esc(f.label)}">`:""}
+      <div class="acts"><button class="btn sm" data-all="${f.key}">Select all</button><button class="btn sm" data-none="${f.key}">Clear</button></div>
+      <div class="opts">${vals.map(v=>`<label data-v="${esc(v.toLowerCase())}"${q&&!v.toLowerCase().includes(q.toLowerCase())?" hidden":""}><input type="checkbox" data-key="${f.key}" value="${esc(v)}"${S.ex[f.key].has(v)?"":" checked"}> ${esc(v)}<span class="n">${cnt.get(v)||0}</span></label>`).join("")}</div></div></details>`}).join("");
+  const act=FILTERS.filter(f=>S.ex[f.key].size).map(f=>f.label);
+  $("activeF").innerHTML=act.length?`Filtered by ${esc(act.join(", "))}. Counts in each list reflect the other filters. <button class="linkbtn" id="clearF">Clear all filters</button>`:"No filters applied. Counts in each list reflect the other filters.";
+}
+function filterText(){
+  const parts=[];
+  const all=[...S.rows.values()].filter(inAnyPeriod);
+  for(const f of FILTERS){if(!S.ex[f.key].size)continue;
+    const base=f.key==="problem"?all.filter(r=>!S.ex.cat.has(r.cat)):all;
+    const on=[...new Set(base.map(f.get))].filter(v=>!S.ex[f.key].has(v));
+    parts.push(f.label+": "+(on.length?on.join(", "):"none"))}
+  return parts.length?parts.join(" | "):"No filters";
+}
+
+/* ---------- computing ---------- */
+function data(){
+  const all=[...S.rows.values()].filter(r=>passes(r));
+  return {A:all.filter(r=>inP(r.date,S.A)),B:all.filter(r=>inP(r.date,S.B))};
+}
+function tally(list,fn){const m=new Map();for(const r of list){const k=fn(r);m.set(k,(m.get(k)||0)+1)}return m}
+function joinRows(mA,mB){
+  return [...new Set([...mA.keys(),...mB.keys()])].map(k=>({label:k,a:mA.get(k)||0,b:mB.get(k)||0})).sort((x,y)=>y.b-x.b||y.a-x.a||String(x.label).localeCompare(String(y.label)));
+}
+function pct(a,b){if(a===0)return b>0?"New":"–";const v=(b-a)/a*100;return(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(1)+"%"}
+function sgn(n){return n>0?"+"+n:n<0?"−"+Math.abs(n):"0"}
+function model(){
+  const {A,B}=data();
+  const probs=joinRows(tally(A,r=>r.problem),tally(B,r=>r.problem));
+  const wards=joinRows(tally(A,r=>r.ward),tally(B,r=>r.ward));
+  const byProb=probs.map(p=>({label:p.label,a:p.a,b:p.b,rows:joinRows(tally(A.filter(r=>r.problem===p.label),r=>r.ward),tally(B.filter(r=>r.problem===p.label),r=>r.ward))}));
+  const allWards=[...new Set([...A,...B].map(r=>r.ward))].sort();
+  return {A,B,probs,wards,byProb,allWards,ta:A.length,tb:B.length};
+}
+function pockets(m,period,min){
+  const cur=period==="A"?m.A:period==="AB"?m.A.concat(m.B):m.B;
+  const groups=new Map();
+  for(const r of cur){if(!r.area)continue;const k=r.ward+"||"+r.area;if(!groups.has(k))groups.set(k,{ward:r.ward,area:r.area,list:[]});groups.get(k).list.push(r)}
+  const prevCount=new Map();if(period==="B")for(const r of m.A)if(r.area){const k=r.ward+"||"+r.area;prevCount.set(k,(prevCount.get(k)||0)+1)}
+  const out=[...groups.entries()].map(([k,g])=>{
+    const probs=[...tally(g.list,r=>r.problem).entries()].sort((a,b)=>b[1]-a[1]);
+    const spots=[...tally(g.list,r=>r._spot).values()].filter(n=>n>1);
+    return {key:k,ward:g.ward,area:g.area,n:g.list.length,prev:prevCount.get(k)||0,pending:g.list.filter(r=>PENDING.has(r.status)).length,
+      slaPassed:g.list.filter(r=>/pass/i.test(r.sla)).length,probs,repeatSpots:spots.length,repeatRows:spots.reduce((s,n)=>s+n,0),
+      list:g.list.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)};
+  }).filter(p=>p.n>=min).sort((a,b)=>b.n-a.n||b.pending-a.pending||a.area.localeCompare(b.area));
+  const unassigned=cur.filter(r=>!r.area);
+  const inPockets=out.reduce((s,p)=>s+p.n,0);
+  return {list:out,total:cur.length,inPockets,unassigned};
+}
+function observations(m){
+  const out=[];const la=fmtRange(S.A),lb=fmtRange(S.B);
+  if(m.ta===0){out.push(`There are no complaints in the previous period (${la}) in the loaded files. Add last week's export to see the change.`);return out}
+  const d=m.tb-m.ta;
+  out.push(`Complaints ${d>0?"rose":d<0?"fell":"stayed flat"} from ${m.ta} to ${m.tb}${d?` (${sgn(d)}, ${pct(m.ta,m.tb)})`:""}.`);
+  const pr=[...m.probs].sort((x,y)=>Math.abs(y.b-y.a)-Math.abs(x.b-x.a))[0];
+  if(pr&&pr.b!==pr.a)out.push(`The biggest change by type is ${pr.label}: ${pr.a} → ${pr.b} (${sgn(pr.b-pr.a)}).`);
+  const up=[...m.wards].sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+  if(up[0]&&up[0].b>up[0].a)out.push(`${up[0].label} had the largest increase: ${up[0].a} → ${up[0].b} (${sgn(up[0].b-up[0].a)}).`);
+  const dn=up[up.length-1];if(dn&&dn.b<dn.a)out.push(`${dn.label} improved the most: ${dn.a} → ${dn.b} (${sgn(dn.b-dn.a)}).`);
+  if(m.tb>0&&m.wards.length>=3){const t2=m.wards.slice(0,2);const s=t2[0].b+t2[1].b;out.push(`${t2[0].label} and ${t2[1].label} together account for ${s} of ${m.tb} complaints (${Math.round(s/m.tb*100)}%) in ${lb}.`)}
+  const pk=pockets(m,"B",2).list[0];if(pk)out.push(`The top pocket area is ${pk.area} (${pk.ward}) with ${pk.n} complaints in ${lb}, ${pk.pending} still pending.`);
+  return out;
+}
+
+/* ---------- rendering ---------- */
+function chgCell(a,b){const d=b-a;const c=d>0?"up":d<0?"down":"";return `<td class="chg ${c}">${sgn(d)}</td><td class="chg ${c}">${pct(a,b)}</td>`}
+function cmpTable(firstHead,rows,totalLabel,tid){
+  const ta=rows.reduce((s,r)=>s+r.a,0),tb=rows.reduce((s,r)=>s+r.b,0);
+  return `<div class="tw"><table data-tid="${esc(tid)}"><thead><tr><th>${esc(firstHead)}</th><th>${esc(fmtRange(S.A))}</th><th>${esc(fmtRange(S.B))}</th><th>Change</th><th>% change</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><td>${esc(r.label)}</td><td>${r.a}</td><td>${r.b}</td>${chgCell(r.a,r.b)}</tr>`).join("")+
+    `<tr class="tot"><td>${esc(totalLabel)}</td><td>${ta}</td><td>${tb}</td>${chgCell(ta,tb)}</tr></tbody></table></div>`;
+}
+function pivotRows(list,m){
+  const out=[];
+  for(const p of m.probs){const sub=list.filter(r=>r.problem===p.label);if(!sub.length)continue;
+    out.push({label:p.label,n:sub.length,cat:true});
+    [...tally(sub,r=>r.ward).entries()].sort((x,y)=>y[1]-x[1]||x[0].localeCompare(y[0])).forEach(([w,n])=>out.push({label:w,n}))}
+  out.push({label:"Grand Total",n:list.length,tot:true});return out;
+}
+function pivotTable(title,list,m,tid){
+  if(!list.length)return `<div><h3>${esc(title)}</h3><div class="tw"><div class="empty">No complaints in this period.</div></div></div>`;
+  return `<div><h3>${esc(title)}</h3><div class="tw"><table data-tid="${tid}" data-nosort><thead><tr><th>Row Labels</th><th>Count of Complaint No.</th></tr></thead><tbody>`+
+    pivotRows(list,m).map(r=>`<tr class="${r.cat?"cat":r.tot?"tot":""}"><td>${esc(r.label)}</td><td>${r.n}</td></tr>`).join("")+`</tbody></table></div></div>`;
+}
+function matrixData(m){
+  const probs=m.probs.map(p=>p.label);
+  const rows=m.allWards.map(w=>{const cells=probs.map(p=>({a:m.A.filter(r=>r.ward===w&&r.problem===p).length,b:m.B.filter(r=>r.ward===w&&r.problem===p).length}));
+    return {ward:w,cells,a:cells.reduce((s,c)=>s+c.a,0),b:cells.reduce((s,c)=>s+c.b,0)}}).sort((x,y)=>y.b-x.b||x.ward.localeCompare(y.ward));
+  return {probs,rows};
+}
+function statusData(m){
+  const order=["Closed","Open","WIP","On Hold","Re Opened","Transfer"];
+  const st=[...new Set(m.B.map(r=>r.status||"(blank)"))].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b)});
+  const rows=[...new Set(m.B.map(r=>r.ward))].map(w=>{const sub=m.B.filter(r=>r.ward===w);
+    return {ward:w,cells:st.map(s=>sub.filter(r=>(r.status||"(blank)")===s).length),pending:sub.filter(r=>PENDING.has(r.status)).length,slaPassed:sub.filter(r=>/pass/i.test(r.sla)).length,total:sub.length}}).sort((x,y)=>y.pending-x.pending||y.total-x.total);
+  return {st,rows};
+}
+const probShort=p=>p.probs.slice(0,3).map(([k,n])=>`${k} ${n}`).join(", ")+(p.probs.length>3?`, +${p.probs.length-3} more`:"");
+function detailTable(list,tid){
+  return `<table data-tid="${esc(tid)}"><thead><tr><th class="l">Date</th><th class="l">Complaint No.</th><th class="l">Problem</th><th class="l">Status</th><th class="l">SLA</th><th class="l">Location address</th></tr></thead><tbody>`+
+    list.map(r=>`<tr><td data-sort="${r.date}">${esc(fmtDay(r.date))}</td><td class="l">${esc(r.complaint)}</td><td class="l">${esc(r.problem)}</td><td class="l">${esc(r.status)}</td><td class="l">${esc(r.sla)}</td><td class="l wrap">${esc(r.addr||"—")}</td></tr>`).join("")+`</tbody></table>`;
+}
+function renderPockets(m){
+  const P=pockets(m,S.pk.period,S.pk.min);const lab=S.pk.period==="A"?fmtRange(S.A):S.pk.period==="AB"?"both periods":fmtRange(S.B);
+  let h=`<div class="pk-ctl"><label>Period <select id="pkPeriod"><option value="B">Current (${esc(fmtRange(S.B))})</option><option value="A">Previous (${esc(fmtRange(S.A))})</option><option value="AB">Both periods</option></select></label>
+    <label>Show areas with at least <select id="pkMin">${[2,3,5,10].map(n=>`<option value="${n}"${S.pk.min===n?" selected":""}>${n}</option>`).join("")}</select> complaints</label></div>`;
+  h+=`<p class="muted small" style="margin:0 0 10px">${P.list.length} pocket areas in ${esc(lab)} hold ${P.inPockets} of ${P.total} complaints. Click a row to see the complaints and addresses. Same spot counts addresses that repeat almost word for word.</p>`;
+  if(!P.list.length)h+=`<div class="tw"><div class="empty">No area has ${S.pk.min} or more complaints with the current filters.</div></div>`;
+  else{
+    const max=P.list[0].n;const showPrev=S.pk.period==="B";
+    h+=`<div class="tw"><table data-tid="pockets"><thead><tr><th>Pocket area</th><th class="l">Ward</th><th>Complaints</th>${showPrev?`<th>Previous</th><th>Change</th>`:""}<th>Pending</th><th>SLA passed</th><th>Same spot</th><th class="l">Main problems</th></tr></thead><tbody>`+
+      P.list.map((p,i)=>{const open=S.pk.open.has(p.key);const d=p.n-p.prev;
+        return `<tr class="pk${open?" open":""}" data-pk="${esc(p.key)}" tabindex="0" aria-expanded="${open}"><td data-sort="${esc(p.area)}"><span class="rank">${i+1}</span> <strong>${esc(p.area)}</strong></td><td class="l">${esc(p.ward)}</td><td><strong>${p.n}</strong><span class="bar" style="width:${Math.round(p.n/max*60)}px"></span></td>${showPrev?`<td>${p.prev}</td><td class="chg ${d>0?"up":d<0?"down":""}">${sgn(d)}</td>`:""}<td>${p.pending}</td><td>${p.slaPassed?`<span class="tag">${p.slaPassed}</span>`:"0"}</td><td>${p.repeatSpots?`${p.repeatRows} at ${p.repeatSpots} spot${p.repeatSpots>1?"s":""}`:"–"}</td><td class="l">${esc(probShort(p))}</td></tr>`+
+          (open?`<tr class="det"><td colspan="${showPrev?9:7}"><div style="overflow-x:auto;padding:10px 12px">${detailTable(p.list,"det:"+p.key)}</div></td></tr>`:"")}).join("")+`</tbody></table></div>`;
+  }
+  if(P.unassigned.length){const open=S.pk.open.has("__none");
+    h+=`<h3>Complaints without a clear area (${P.unassigned.length})</h3><p class="muted small" style="margin:0 0 8px">These addresses are too short, vague or one-off to group. Add a rule below if you spot a locality that should be grouped.</p>
+    <button class="btn sm" id="pkNone">${open?"Hide":"Show"} these complaints</button>${open?`<div class="tw" style="margin-top:8px">${detailTable(P.unassigned,"unassigned")}</div>`:""}`}
+  h+=`<details class="rules"${S.pk.rulesOpen?" open":""} id="rulesBox"><summary>Area grouping rules</summary><div class="body">
+    <p class="small muted" style="margin:0 0 8px;max-width:85ch">One rule per line: keywords separated by commas, then <strong>=</strong> and the area name. If an address contains any keyword, it goes into that area. The first matching rule wins, so put specific places above broad ones. Addresses that match no rule are grouped automatically by the locality names that repeat in the file. Rules are saved in this browser.</p>
+    <textarea id="rulesTa" spellcheck="false" aria-label="Area grouping rules">${esc(S.rules)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn primary sm" id="rulesSave">Save and regroup</button><button class="btn sm" id="rulesReset">Restore default rules</button><span class="small muted" id="rulesMsg"></span></div></div></details>`;
+  return h;
+}
+function render(){
+  renderFilters();
+  const m=model();
+  const note=[];
+  if(S.A.from&&S.B.from&&S.A.to>=S.B.from&&S.A.from<=S.B.to)note.push("The two periods overlap, so some complaints are counted in both.");
+  const ds=[...S.rows.values()].map(r=>r.date).sort();const mn=ds[0],mx=ds[ds.length-1];
+  if(S.A.from&&(S.A.from<mn||S.A.to>mx))note.push(`The previous period goes outside the loaded data (${fmtDay(mn)} to ${fmtDay(mx)}). Add that week's export for a full count.`);
+  else if(S.B.from&&(S.B.from<mn||S.B.to>mx))note.push(`The current period goes outside the loaded data (${fmtDay(mn)} to ${fmtDay(mx)}).`);
+  $("periodNote").hidden=!note.length;$("periodNote").textContent=note.join(" ");
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",String(t.dataset.tab===S.tab)));
+  $("dlBtn").disabled=!(m.ta+m.tb)||!dlReady;
+  let h="";
+  if(!(m.ta+m.tb)){$("view").innerHTML=`<div class="tw"><div class="empty">No complaints match these dates and filters.</div></div>`;return}
+  if(S.tab==="compare"){
+    h+=`<div class="totals"><div><div class="k">Previous, ${esc(fmtRange(S.A))}</div><div class="v">${m.ta}</div></div><div><div class="k">Current, ${esc(fmtRange(S.B))}</div><div class="v">${m.tb}</div></div><div><div class="k">Change</div><div class="v chg ${m.tb>m.ta?"up":m.tb<m.ta?"down":""}">${sgn(m.tb-m.ta)} <span style="font-size:15px">${pct(m.ta,m.tb)}</span></div></div></div>`;
+    h+=`<ul class="obs">`+observations(m).map(o=>`<li>${esc(o)}</li>`).join("")+`</ul>`;
+    h+=`<h3>By complaint type</h3>`+cmpTable("Complaint type",m.probs,"Grand Total","type");
+    h+=`<h3>By ward, all selected types</h3>`+cmpTable("Ward",m.wards,"Total","ward");
+    for(const p of m.byProb)h+=`<h3>${esc(p.label)} <span class="muted" style="font-weight:500">(${p.a} → ${p.b}, ${sgn(p.b-p.a)})</span></h3>`+cmpTable("Ward",p.rows,"Total","prob:"+p.label);
+  }else if(S.tab==="pockets"){
+    h+=renderPockets(m);
+  }else if(S.tab==="pivot"){
+    h+=`<div class="grid2">`+pivotTable(fmtRange(S.B)+" "+yr(S.B),m.B,m,"pivotB")+pivotTable(fmtRange(S.A)+" "+yr(S.A),m.A,m,"pivotA")+`</div>`;
+  }else if(S.tab==="matrix"){
+    const x=matrixData(m);
+    h+=`<p class="muted small" style="margin:0 0 8px">Each cell shows previous → current. Red cells went up, green went down.</p><div class="tw"><table data-tid="matrix"><thead><tr><th>Ward</th>`+x.probs.map(p=>`<th>${esc(p)}</th>`).join("")+`<th>Total</th></tr></thead><tbody>`+
+      x.rows.map(r=>`<tr><td>${esc(r.ward)}</td>`+r.cells.map(c=>`<td class="${c.b>c.a?"hi-up":c.b<c.a?"hi-down":""}">${c.a} → ${c.b}</td>`).join("")+`<td class="${r.b>r.a?"hi-up":r.b<r.a?"hi-down":""}"><strong>${r.a} → ${r.b}</strong></td></tr>`).join("")+
+      `<tr class="tot"><td>Total</td>`+m.probs.map(p=>`<td>${p.a} → ${p.b}</td>`).join("")+`<td>${m.ta} → ${m.tb}</td></tr></tbody></table></div>`;
+  }else{
+    const x=statusData(m);
+    if(!m.B.length)h+=`<div class="tw"><div class="empty">No complaints in the current period.</div></div>`;
+    else h+=`<p class="muted small" style="margin:0 0 8px">Status of complaints registered in ${esc(fmtRange(S.B))}, as of when the file was downloaded. Pending = Open + WIP + On Hold + Re Opened.</p><div class="tw"><table data-tid="status"><thead><tr><th>Ward</th>`+x.st.map(s=>`<th>${esc(s)}</th>`).join("")+`<th>Pending</th><th>SLA passed</th><th>Total</th></tr></thead><tbody>`+
+      x.rows.map(r=>`<tr><td>${esc(r.ward)}</td>`+r.cells.map(n=>`<td>${n||""}</td>`).join("")+`<td><strong>${r.pending}</strong></td><td>${r.slaPassed||""}</td><td>${r.total}</td></tr>`).join("")+
+      `<tr class="tot"><td>Total</td>`+x.st.map(s=>`<td>${m.B.filter(r=>(r.status||"(blank)")===s).length}</td>`).join("")+`<td>${x.rows.reduce((s,r)=>s+r.pending,0)}</td><td>${x.rows.reduce((s,r)=>s+r.slaPassed,0)}</td><td>${m.B.length}</td></tr></tbody></table></div>`;
+  }
+  $("view").innerHTML=h;
+  enhanceTables();
+  const ps=$("pkPeriod");if(ps)ps.value=S.pk.period;
+}
+
+/* ---------- sort & copy ---------- */
+S.sort={};
+function cellVal(c){return c.dataset.sort!=null?c.dataset.sort:c.textContent.trim()}
+function numOf(v){let t=v.replace(/−/g,"-");if(t.includes("→"))t=t.split("→").pop().trim();
+  if(t==="")return 0;if(t==="–"||t==="-")return -1e9;if(/^new$/i.test(t))return 1e9;
+  if(!/^[+-]?\d/.test(t))return null;return parseFloat(t.replace(/[,+%]/g,""))}
+function units(tbody){const u=[],pin=[];for(const r of [...tbody.rows]){if(r.classList.contains("tot"))pin.push(r);else if(r.classList.contains("det")&&u.length)u[u.length-1].push(r);else u.push([r])}return {u,pin}}
+function applySort(t){
+  const st=S.sort[t.dataset.tid];const ths=[...t.tHead.rows[0].cells];ths.forEach(th=>th.removeAttribute("aria-sort"));
+  if(!st||t.hasAttribute("data-nosort"))return;
+  const th=ths[st.col];if(!th)return;th.setAttribute("aria-sort",st.dir>0?"ascending":"descending");
+  const tb=t.tBodies[0];const {u,pin}=units(tb);
+  const vals=u.map(g=>cellVal(g[0].cells[st.col]||{dataset:{},textContent:""}));
+  const numeric=vals.every(v=>numOf(v)!==null);
+  const idx=u.map((g,i)=>i).sort((a,b)=>{const x=vals[a],y=vals[b];
+    const d=numeric?numOf(x)-numOf(y):x.localeCompare(y,undefined,{numeric:true,sensitivity:"base"});return (d||a-b)*(d?st.dir:1)});
+  idx.forEach(i=>u[i].forEach(r=>tb.appendChild(r)));pin.forEach(r=>tb.appendChild(r));
+}
+function enhanceTables(){
+  document.querySelectorAll("#view table[data-tid]").forEach(t=>{
+    const host=t.parentElement;
+    if(!(host.previousElementSibling&&host.previousElementSibling.classList.contains("tbar"))){
+      const bar=document.createElement("div");bar.className="tbar";
+      bar.innerHTML=`<span>${t.hasAttribute("data-nosort")?"":"Click a column heading to sort"}</span><span><span class="msg"></span> <button class="btn" data-copy="${esc(t.dataset.tid)}">Copy table</button></span>`;
+      host.parentElement.insertBefore(bar,host)}
+    applySort(t);
+  });
+}
+function tableData(t){
+  const rows=[[...t.tHead.rows[0].cells].map(c=>c.textContent.trim())];
+  for(const r of t.tBodies[0].rows){if(r.classList.contains("det"))continue;rows.push([...r.cells].map(c=>c.textContent.replace(/\s+/g," ").trim()))}
+  return rows;
+}
+async function copyTable(t,msg){
+  const rows=tableData(t);
+  const tsv=rows.map(r=>r.join("\t")).join("\n");
+  const html=`<table border="1" cellpadding="4" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px">`+rows.map((r,i)=>"<tr>"+r.map(c=>i===0?`<th style="background:#e8e8e8">${esc(c)}</th>`:`<td>${esc(c)}</td>`).join("")+"</tr>").join("")+`</table>`;
+  let ok=false;
+  try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({"text/plain":new Blob([tsv],{type:"text/plain"}),"text/html":new Blob([html],{type:"text/html"})})]);ok=true}}catch(e){}
+  if(!ok)try{await navigator.clipboard.writeText(tsv);ok=true}catch(e){}
+  if(!ok){const ta=document.createElement("textarea");ta.value=tsv;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{ok=document.execCommand("copy")}catch(e){}ta.remove()}
+  msg.className="msg"+(ok?" ok":"");
+  msg.textContent=ok?"Copied. Paste into Excel, WhatsApp or email.":"Copy is blocked here. Download the Excel report instead.";
+  setTimeout(()=>{msg.textContent=""},3500);
+}
+
+/* ---------- Excel export ---------- */
+function buildWorkbook(){
+  const m=model();const la=fmtRange(S.A)+" "+yr(S.A),lb=fmtRange(S.B)+" "+yr(S.B);
+  const wb=XLSX.utils.book_new();
+  const pn=(a,b)=>a===0?(b>0?"New":""):Math.round((b-a)/a*1000)/10;
+  const cmp=(first,rows,tot)=>{const ta=rows.reduce((s,r)=>s+r.a,0),tb=rows.reduce((s,r)=>s+r.b,0);
+    return [[first,la,lb,"Change","% Change"],...rows.map(r=>[r.label,r.a,r.b,r.b-r.a,pn(r.a,r.b)]),[tot,ta,tb,tb-ta,pn(ta,tb)]]};
+  const add=(name,a,cols)=>{const ws=XLSX.utils.aoa_to_sheet(a);ws["!cols"]=cols.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,name)};
+  let a=[["Weekly complaint comparison"],["Previous: "+la,"","Current: "+lb],["Filters: "+filterText()],[],["Key observations"]];
+  observations(m).forEach(o=>a.push([o]));a.push([]);
+  a.push(["By complaint type"],...cmp("Complaint type",m.probs,"Grand Total"),[]);
+  a.push(["By ward"],...cmp("Ward",m.wards,"Total"),[]);
+  for(const p of m.byProb)a.push([p.label],...cmp("Ward",p.rows,"Total"),[]);
+  add("Comparison",a,[32,16,16,10,10]);
+  const P=pockets(m,"B",2);
+  a=[["Pocket areas, "+lb+" (2 or more complaints)"],["Filters: "+filterText()],["Rank","Pocket area","Ward","Complaints",la,"Change","Pending","SLA passed","Same-spot complaints","Main problems"]];
+  P.list.forEach((p,i)=>a.push([i+1,p.area,p.ward,p.n,p.prev,p.n-p.prev,p.pending,p.slaPassed,p.repeatRows,p.probs.map(([k,n])=>k+" "+n).join(", ")]));
+  a.push([],["Complaints in pockets",P.inPockets],["Complaints without a clear area",P.unassigned.length],["Total",P.total]);
+  add("Pocket areas",a,[6,40,18,11,14,8,9,10,12,60]);
+  a=[["Pocket area","Ward","Registration Date","Complaint No.","Problem","Status","SLA Status","Location Address"]];
+  P.list.forEach(p=>p.list.forEach(r=>a.push([p.area,p.ward,r.date,r.complaint,r.problem,r.status,r.sla,r.addr])));
+  add("Pocket details",a,[36,18,14,18,28,10,12,90]);
+  const x=matrixData(m);
+  a=[["Ward",...x.probs.flatMap(p=>[p+" ("+fmtRange(S.A)+")",p+" ("+fmtRange(S.B)+")"]),"Total ("+fmtRange(S.A)+")","Total ("+fmtRange(S.B)+")"]];
+  x.rows.forEach(r=>a.push([r.ward,...r.cells.flatMap(c=>[c.a,c.b]),r.a,r.b]));
+  a.push(["Total",...m.probs.flatMap(p=>[p.a,p.b]),m.ta,m.tb]);
+  add("Ward matrix",a,[20,...a[0].slice(1).map(()=>18)]);
+  for(const [nm,list,lab] of [["Pivot current",m.B,lb],["Pivot previous",m.A,la]])
+    add(nm,[[lab],["Row Labels","Count of Complaint No."],...(list.length?pivotRows(list,m).map(r=>[r.label,r.n]):[["No complaints",0]])],[30,24]);
+  const sd=statusData(m);
+  a=[["Status of complaints registered "+lb],["Ward",...sd.st,"Pending","SLA passed","Total"],...sd.rows.map(r=>[r.ward,...r.cells,r.pending,r.slaPassed,r.total])];
+  a.push(["Total",...sd.st.map(s=>m.B.filter(r=>(r.status||"(blank)")===s).length),sd.rows.reduce((s,r)=>s+r.pending,0),sd.rows.reduce((s,r)=>s+r.slaPassed,0),m.B.length]);
+  add("Status",a,[20,...a[1].slice(1).map(()=>11)]);
+  a=[["Period","Complaint No.","Token No.","Registration Date","Ward","Pocket area","Department","Problem Category","Problem","Status","SLA Status","Location Address"]];
+  for(const [lab,list] of [[lb,m.B],[la,m.A]])list.slice().sort((p,q)=>p.date<q.date?-1:p.date>q.date?1:0).forEach(r=>a.push([lab,r.complaint,r.token,r.date,r.ward,r.area||"",r.dept,r.cat,r.problem,r.status,r.sla,r.addr]));
+  add("Data",a,[16,18,18,14,18,32,14,20,28,10,12,80]);
+  const cats=[...new Set([...m.A,...m.B].map(r=>r.cat))];
+  const tag=(cats.length===1?cats[0]:"Complaints").replace(/[^A-Za-z0-9]+/g,"_");
+  return {buf:XLSX.write(wb,{bookType:"xlsx",type:"array"}),fname:tag+"_report_"+S.B.from+"_vs_"+S.A.from+".xlsx"};
+}
+let dl=null,dlReady=false;
+(async()=>{
+  if(window.claude&&typeof window.claude.use==="function"){
+    try{dl=await window.claude.use("downloads")}catch(e){dl=null}
+    if(!dl)$("dlBtn").hidden=true;else dlReady=true;
+  }else dlReady=true;
+  if(S.rows.size)render();
+})();
+$("dlBtn").addEventListener("click",async()=>{
+  $("dlErr").textContent="";
+  try{
+    const {buf,fname}=buildWorkbook();
+    if(dl){await dl.save({filename:fname,data:new Blob([buf])})}
+    else{const u=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const l=document.createElement("a");l.href=u;l.download=fname;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+  }catch(e){const c=e&&e.code;if(c==="declined")return;
+    $("dlErr").textContent=c==="rate_limited"?"A download prompt is already open. Finish it, then try again.":"The Excel file could not be saved here"+(e&&e.message?": "+e.message:".")}
+});
+
+/* ---------- events ---------- */
+const drop=$("drop"),fi=$("fileIn");
+drop.addEventListener("click",()=>fi.click());
+drop.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click()}});
+fi.addEventListener("change",()=>{if(fi.files.length)addFiles([...fi.files]);fi.value=""});
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{const f=[...(e.dataTransfer.files||[])];if(f.length)addFiles(f)});
+$("fileList").addEventListener("click",async e=>{const i=e.target.dataset.rm;if(i==null)return;const f=S.files[+i];
+  if(SHARED){if(!confirm("Remove "+f.name+" for everyone?"))return;
+    try{await api("file?name="+encodeURIComponent(f.name),{method:"DELETE"})}catch(err){$("err").textContent="Could not remove online: "+err.message;return}}
+  S.files.splice(+i,1);rebuild(true)});
+for(const [id,p,k] of [["aFrom","A","from"],["aTo","A","to"],["bFrom","B","from"],["bTo","B","to"]])
+  $(id).addEventListener("change",e=>{S[p][k]=e.target.value;render()});
+const fl=$("filters");
+fl.addEventListener("change",e=>{const t=e.target;if(t.type!=="checkbox")return;const s=S.ex[t.dataset.key];t.checked?s.delete(t.value):s.add(t.value);render()});
+fl.addEventListener("click",e=>{
+  const all=e.target.dataset.all,none=e.target.dataset.none;if(!all&&!none)return;e.preventDefault();
+  const key=all||none;const box=e.target.closest(".ms");
+  box.querySelectorAll(".opts label:not([hidden]) input").forEach(i=>{all?S.ex[key].delete(i.value):S.ex[key].add(i.value)});render()});
+fl.addEventListener("input",e=>{const t=e.target;if(t.type!=="search")return;const q=t.value.toLowerCase();
+  t.closest(".pop").querySelectorAll(".opts label").forEach(l=>l.hidden=!!q&&!l.dataset.v.includes(q))});
+fl.addEventListener("toggle",e=>{if(e.target.open)document.querySelectorAll(".ms[open]").forEach(d=>{if(d!==e.target)d.open=false})},true);
+document.addEventListener("click",e=>{if(!e.target.closest(".ms"))document.querySelectorAll(".ms[open]").forEach(d=>d.open=false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".ms[open]").forEach(d=>{d.open=false;d.querySelector("summary").focus()})});
+$("activeF").addEventListener("click",e=>{if(e.target.id==="clearF"){FILTERS.forEach(f=>S.ex[f.key].clear());render()}});
+document.querySelector(".tabs").addEventListener("click",e=>{const t=e.target.closest(".tab");if(t){S.tab=t.dataset.tab;render()}});
+const view=$("view");
+view.addEventListener("change",e=>{
+  if(e.target.id==="pkPeriod"){S.pk.period=e.target.value;S.pk.open.clear();render()}
+  if(e.target.id==="pkMin"){S.pk.min=+e.target.value;render()}});
+function togglePk(tr){const k=tr.dataset.pk;S.pk.open.has(k)?S.pk.open.delete(k):S.pk.open.add(k);render()}
+view.addEventListener("click",e=>{
+  const cb=e.target.closest("[data-copy]");
+  if(cb){const t=[...view.querySelectorAll("table[data-tid]")].find(x=>x.dataset.tid===cb.dataset.copy);if(t)copyTable(t,cb.parentElement.querySelector(".msg"));return}
+  const th=e.target.closest("table[data-tid]:not([data-nosort]) thead th");
+  if(th){const t=th.closest("table");const tid=t.dataset.tid;const col=th.cellIndex;const cur=S.sort[tid];
+    const firstNum=[...t.tBodies[0].rows].filter(r=>!r.classList.contains("tot")&&!r.classList.contains("det")).every(r=>numOf(cellVal(r.cells[col]||{dataset:{},textContent:""}))!==null);
+    S.sort[tid]=cur&&cur.col===col?{col,dir:-cur.dir}:{col,dir:firstNum?-1:1};applySort(t);return}
+  const tr=e.target.closest("tr.pk");if(tr){togglePk(tr);return}
+  if(e.target.id==="pkNone"){S.pk.open.has("__none")?S.pk.open.delete("__none"):S.pk.open.add("__none");render();return}
+  if(e.target.id==="rulesSave"){const t=$("rulesTa").value;
+    (async()=>{try{if(SHARED)await api("rules",{method:"PUT",body:t});else localStorage.setItem("pocketRules",t)}catch(err){$("rulesMsg").textContent="Not saved: "+err.message;return}
+      S.rules=t;S.pk.rulesOpen=true;assignAreas([...S.rows.values()],S.rules);render();$("rulesMsg").textContent=SHARED?"Saved for everyone. Areas regrouped.":"Saved. Areas regrouped."})();return}
+  if(e.target.id==="rulesReset"){
+    (async()=>{try{if(SHARED)await api("rules",{method:"DELETE"});else localStorage.removeItem("pocketRules")}catch(err){$("rulesMsg").textContent="Not reset: "+err.message;return}
+      S.rules=DEFAULT_RULES;S.pk.rulesOpen=true;assignAreas([...S.rows.values()],S.rules);render();$("rulesMsg").textContent="Default rules restored.";})();return}
+});
+view.addEventListener("keydown",e=>{const tr=e.target.closest&&e.target.closest("tr.pk");if(tr&&(e.key==="Enter"||e.key===" ")){e.preventDefault();togglePk(tr);const n=view.querySelector(`tr.pk[data-pk="${CSS.escape(tr.dataset.pk)}"]`);if(n)n.focus()}});
+view.addEventListener("toggle",e=>{if(e.target.id==="rulesBox")S.pk.rulesOpen=e.target.open},true);
+loadShared();
+})();
+</script>
+</body>
+</html>
