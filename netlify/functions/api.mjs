@@ -18,6 +18,11 @@ export default async (req) => {
   }
 
   try {
+    // Admin login check (password already verified above)
+    if (route === "check" && req.method === "POST") {
+      return json({ ok: true, locked: !!PASS });
+    }
+
     // List all shared files + saved rules
     if (route === "list" && req.method === "GET") {
       const { blobs } = await store.list({ prefix: "files/" });
