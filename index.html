@@ -253,11 +253,14 @@ const DEFAULT_RULES="shaligram, nandigram, nandi gram, kotarpur = Kotarpur / Nan
 const MONTHS={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
 const PENDING=new Set(["Open","WIP","On Hold","Re Opened"]);
 const FILTERS=[
+  {key:"dept",label:"Department",get:r=>r.dept||"(blank)"},
   {key:"ward",label:"Ward",get:r=>r.ward},
   {key:"cat",label:"Problem Category",get:r=>r.cat},
   {key:"problem",label:"Problem",get:r=>r.problem},
   {key:"status",label:"Status",get:r=>r.status||"(blank)"},
   {key:"sla",label:"SLA Status",get:r=>r.sla||"(blank)"}];
+const PARENT={ward:["dept",r=>r.dept||"(blank)"],problem:["cat",r=>r.cat]};
+const baseFor=(key,all)=>{const p=PARENT[key];return p?all.filter(r=>!S.ex[p[0]].has(p[1](r))):all};
 const S={files:[],rows:new Map(),A:{from:"",to:""},B:{from:"",to:""},ex:{},firstLoad:true,tab:"compare",
   pk:{period:"B",min:2,open:new Set()},rules:DEFAULT_RULES};
 FILTERS.forEach(f=>S.ex[f.key]=new Set());
@@ -392,7 +395,7 @@ function renderFilters(){
   const all=[...S.rows.values()].filter(inAnyPeriod);
   $("filters").innerHTML=FILTERS.map(f=>{
     // options: values present in the loaded periods; problems only from the chosen categories
-    const base=f.key==="problem"?all.filter(r=>!S.ex.cat.has(r.cat)):all;
+    const base=baseFor(f.key,all);
     const cnt=new Map();for(const r of all)if(passes(r,f.key)){const v=f.get(r);cnt.set(v,(cnt.get(v)||0)+1)}
     const vals=[...new Set(base.map(f.get))].sort((a,b)=>(cnt.get(b)||0)-(cnt.get(a)||0)||a.localeCompare(b));
     const on=vals.filter(v=>!S.ex[f.key].has(v));
@@ -409,7 +412,7 @@ function filterText(){
   const parts=[];
   const all=[...S.rows.values()].filter(inAnyPeriod);
   for(const f of FILTERS){if(!S.ex[f.key].size)continue;
-    const base=f.key==="problem"?all.filter(r=>!S.ex.cat.has(r.cat)):all;
+    const base=baseFor(f.key,all);
     const on=[...new Set(base.map(f.get))].filter(v=>!S.ex[f.key].has(v));
     parts.push(f.label+": "+(on.length?on.join(", "):"none"))}
   return parts.length?parts.join(" | "):"No filters";
@@ -432,7 +435,10 @@ function model(){
   const wards=joinRows(tally(A,r=>r.ward),tally(B,r=>r.ward));
   const byProb=probs.map(p=>({label:p.label,a:p.a,b:p.b,rows:joinRows(tally(A.filter(r=>r.problem===p.label),r=>r.ward),tally(B.filter(r=>r.problem===p.label),r=>r.ward))}));
   const allWards=[...new Set([...A,...B].map(r=>r.ward))].sort();
-  return {A,B,probs,wards,byProb,allWards,ta:A.length,tb:B.length};
+  const dk=r=>r.dept||"(blank)";
+  const depts=joinRows(tally(A,dk),tally(B,dk));
+  const byDept=depts.map(d=>({label:d.label,a:d.a,b:d.b,rows:joinRows(tally(A.filter(r=>dk(r)===d.label),r=>r.ward),tally(B.filter(r=>dk(r)===d.label),r=>r.ward))}));
+  return {A,B,probs,wards,depts,byDept,byProb,allWards,ta:A.length,tb:B.length};
 }
 function pockets(m,period,min){
   const cur=period==="A"?m.A:period==="AB"?m.A.concat(m.B):m.B;
@@ -481,6 +487,12 @@ function cmpTable(firstHead,rows,totalLabel,tid){
   return `<div class="tw"><table data-tid="${esc(tid)}"><thead><tr><th>${esc(firstHead)}</th><th>${esc(fmtRange(S.A))}</th><th>${esc(fmtRange(S.B))}</th><th>Change</th><th>% change</th></tr></thead><tbody>`+
     rows.map(r=>`<tr><td>${esc(r.label)}</td><td>${r.a}</td><td>${r.b}</td>${chgCell(r.a,r.b)}</tr>`).join("")+
     `<tr class="tot"><td>${esc(totalLabel)}</td><td>${ta}</td><td>${tb}</td>${chgCell(ta,tb)}</tr></tbody></table></div>`;
+}
+function deptWardTable(m){
+  return `<div class="tw"><table data-tid="deptward" data-nosort><thead><tr><th>Department / Ward</th><th>${esc(fmtRange(S.A))}</th><th>${esc(fmtRange(S.B))}</th><th>Change</th><th>% change</th></tr></thead><tbody>`+
+    m.byDept.map(d=>`<tr class="cat"><td><strong>${esc(d.label)}</strong></td><td><strong>${d.a}</strong></td><td><strong>${d.b}</strong></td>${chgCell(d.a,d.b)}</tr>`+
+      d.rows.map(r=>`<tr><td style="padding-left:28px">${esc(r.label)}</td><td>${r.a}</td><td>${r.b}</td>${chgCell(r.a,r.b)}</tr>`).join("")).join("")+
+    `<tr class="tot"><td>Total</td><td>${m.ta}</td><td>${m.tb}</td>${chgCell(m.ta,m.tb)}</tr></tbody></table></div>`;
 }
 function pivotRows(list,m){
   const out=[];
@@ -557,6 +569,8 @@ function render(){
       gB.map(x=>`<tr><td><strong>${x.length}</strong></td><td class="l">${esc(x[0].problem)}</td><td class="l">${esc(x[0].ward)}</td><td class="l wrap">${esc(x.map(r=>r.complaint).join(", "))}</td><td class="l wrap">${esc(x[0].addr||"—")}</td></tr>`).join("")+`</tbody></table></div></details>`;
     h+=`<ul class="obs">`+observations(m).map(o=>`<li>${esc(o)}</li>`).join("")+`</ul>`;
     h+=`<h3>By complaint type</h3>`+cmpTable("Complaint type",m.probs,"Grand Total","type");
+    h+=`<h3>By department</h3>`+cmpTable("Department",m.depts,"Total","dept");
+    h+=`<h3>By department and ward</h3>`+deptWardTable(m);
     h+=`<h3>By ward, all selected types</h3>`+cmpTable("Ward",m.wards,"Total","ward");
     for(const p of m.byProb)h+=`<h3>${esc(p.label)} <span class="muted" style="font-weight:500">(${p.a} → ${p.b}, ${sgn(p.b-p.a)})</span></h3>`+cmpTable("Ward",p.rows,"Total","prob:"+p.label);
   }else if(S.tab==="pockets"){
@@ -637,6 +651,10 @@ function buildWorkbook(){
   let a=[["Weekly complaint comparison"],["Previous: "+la,"","Current: "+lb],["Filters: "+filterText()],[],["Key observations"]];
   observations(m).forEach(o=>a.push([o]));a.push([]);
   a.push(["By complaint type"],...cmp("Complaint type",m.probs,"Grand Total"),[]);
+  a.push(["By department"],...cmp("Department",m.depts,"Total"),[]);
+  a.push(["By department and ward"],["Department / Ward",la,lb,"Change","% Change"]);
+  for(const d of m.byDept){a.push([d.label,d.a,d.b,d.b-d.a,pn(d.a,d.b)]);d.rows.forEach(r=>a.push(["    "+r.label,r.a,r.b,r.b-r.a,pn(r.a,r.b)]))}
+  a.push(["Total",m.ta,m.tb,m.tb-m.ta,pn(m.ta,m.tb)],[]);
   a.push(["By ward"],...cmp("Ward",m.wards,"Total"),[]);
   for(const p of m.byProb)a.push([p.label],...cmp("Ward",p.rows,"Total"),[]);
   add("Comparison",a,[32,16,16,10,10]);
