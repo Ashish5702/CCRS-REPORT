@@ -89,6 +89,9 @@ legend{font-weight:700;font-size:14px;padding:0 4px}
 .totals > div{background:var(--surface);padding:12px 14px}
 .totals .k{font-size:13px;color:var(--muted)}
 .totals .v{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.totals .s{font-size:12px;color:var(--muted);margin-top:2px}
+.totals.dup{margin-top:8px}
+details.dupl{margin:8px 0 4px}details.dupl summary{cursor:pointer;font-weight:600}
 .obs{margin:14px 0 0;padding-left:20px}
 .obs li{margin:4px 0;max-width:85ch}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
@@ -140,7 +143,7 @@ footer{margin-top:30px;font-size:13px;color:var(--muted)}
   <p>Category-wise, ward-wise and pocket-area report from the AMC Full Complaint export</p>
 </div></header>
 <main>
-  <section class="panel" aria-labelledby="up-h">
+  <section class="panel" id="upPanel" aria-labelledby="up-h">
     <h2 id="up-h">Add your export files</h2>
     <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose Excel files">
       <strong>Drop the Full Complaint Excel files here</strong>
@@ -152,6 +155,7 @@ footer{margin-top:30px;font-size:13px;color:var(--muted)}
     <p class="muted small" style="margin:12px 0 0"><span id="syncMsg">Files you add are saved online, so everyone who opens this page sees the same report.</span></p>
   </section>
 
+  <section class="panel" id="emptyPanel" hidden><h2>No report published yet</h2><p class="muted" style="margin:0">Please check back after the latest complaint files are added.</p></section>
   <section class="panel" id="setup" hidden aria-labelledby="set-h">
     <h2 id="set-h">Report settings</h2>
     <div class="row2">
@@ -259,6 +263,7 @@ const S={files:[],rows:new Map(),A:{from:"",to:""},B:{from:"",to:""},ex:{},first
 FILTERS.forEach(f=>S.ex[f.key]=new Set());
 /* ---------- shared storage (Netlify) ---------- */
 let SHARED=false;
+const ADMIN=new URLSearchParams(location.search).has("admin");
 const keyHdr=()=>{try{const k=localStorage.getItem("uploadKey");return k?{"x-upload-key":k}:{}}catch(e){return {}}};
 async function api(path,opt={},retry=true){
   const r=await fetch("/api/"+path,{...opt,headers:{...(opt.headers||{}),...keyHdr()},cache:"no-store"});
@@ -336,23 +341,26 @@ async function loadShared(){
     try{const r=localStorage.getItem("pocketRules");if(r!=null)S.rules=r}catch(e){}
     return}
   if(list.rules!=null)S.rules=list.rules;
+  if(ADMIN){try{await api("check",{method:"POST"})}catch(e){alert("Admin login failed: "+e.message+"\nOpening the view-only report.");location.href=location.pathname;return}
+    if(!list.locked)syncMsg("Warning: no upload password is set on Netlify, so anyone with the ?admin link can upload.")}
+  else $("upPanel").hidden=true;
   const errs=[];
   for(const name of list.names){
     try{const buf=await (await api("file?name="+encodeURIComponent(name))).arrayBuffer();S.files.push(parseWorkbook(buf,name))}
     catch(e){errs.push(name+": "+(e.message||e))}
   }
   if(errs.length)$("err").textContent=errs.join(" ");
-  syncMsg(list.names.length?"Showing "+list.names.length+" shared file(s). Everyone sees the same files.":"No shared files yet. Files you add are saved online for everyone.");
-  if(S.files.length)rebuild(true);
+  if(ADMIN&&list.locked)syncMsg(list.names.length?"Showing "+list.names.length+" shared file(s). Everyone sees the same files.":"No shared files yet. Files you add are saved online for everyone.");
+  if(S.files.length)rebuild(true);else $("emptyPanel").hidden=ADMIN;
 }
 function rebuild(resetPeriods){
   S.rows=new Map();for(const f of S.files)for(const r of f.rows)S.rows.set(r.key,r);
   renderFiles();
   const has=S.rows.size>0;$("setup").hidden=!has;$("results").hidden=!has;
+  $("emptyPanel").hidden=has||ADMIN||!SHARED;
   if(!has)return;
   assignAreas([...S.rows.values()],S.rules);
   if(resetPeriods)defaultPeriods();
-  if(S.firstLoad){const cats=new Set([...S.rows.values()].map(r=>r.cat));if(cats.has("Road"))cats.forEach(c=>{if(c!=="Road")S.ex.cat.add(c)});S.firstLoad=false}
   render();
 }
 function defaultPeriods(){
@@ -382,8 +390,8 @@ function renderFilters(){
   $("filters").innerHTML=FILTERS.map(f=>{
     // options: values present in the loaded periods; problems only from the chosen categories
     const base=f.key==="problem"?all.filter(r=>!S.ex.cat.has(r.cat)):all;
-    const vals=[...new Set(base.map(f.get))].sort((a,b)=>a.localeCompare(b));
     const cnt=new Map();for(const r of all)if(passes(r,f.key)){const v=f.get(r);cnt.set(v,(cnt.get(v)||0)+1)}
+    const vals=[...new Set(base.map(f.get))].sort((a,b)=>(cnt.get(b)||0)-(cnt.get(a)||0)||a.localeCompare(b));
     const on=vals.filter(v=>!S.ex[f.key].has(v));
     const val=on.length===vals.length?"All":on.length===0?"None":on.length===1?on[0]:on.length+" of "+vals.length;
     const q=qs[f.key]||"";
@@ -433,9 +441,9 @@ function pockets(m,period,min){
     const spots=[...tally(g.list,r=>r._spot).values()].filter(n=>n>1);
     return {key:k,ward:g.ward,area:g.area,n:g.list.length,prev:prevCount.get(k)||0,pending:g.list.filter(r=>PENDING.has(r.status)).length,
       slaPassed:g.list.filter(r=>/pass/i.test(r.sla)).length,probs,repeatSpots:spots.length,repeatRows:spots.reduce((s,n)=>s+n,0),
-      list:g.list.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)};
+      list:g.list.slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0)};
   }).filter(p=>p.n>=min).sort((a,b)=>b.n-a.n||b.pending-a.pending||a.area.localeCompare(b.area));
-  const unassigned=cur.filter(r=>!r.area);
+  const unassigned=cur.filter(r=>!r.area).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
   const inPockets=out.reduce((s,p)=>s+p.n,0);
   return {list:out,total:cur.length,inPockets,unassigned};
 }
@@ -453,6 +461,15 @@ function observations(m){
   const pk=pockets(m,"B",2).list[0];if(pk)out.push(`The top pocket area is ${pk.area} (${pk.ward}) with ${pk.n} complaints in ${lb}, ${pk.pending} still pending.`);
   return out;
 }
+
+/* ---------- duplicates: same ward + same problem + same address ---------- */
+function dupGroups(list){
+  const g=new Map();
+  for(const r of list){if(!r._spot||r._spot.length<8)continue;const k=r.ward+"||"+r.problem+"||"+r._spot;
+    if(!g.has(k))g.set(k,[]);g.get(k).push(r)}
+  return [...g.values()].filter(x=>x.length>1).sort((a,b)=>b.length-a.length);
+}
+function dupCount(list){return dupGroups(list).reduce((s,x)=>s+x.length-1,0)}
 
 /* ---------- rendering ---------- */
 function chgCell(a,b){const d=b-a;const c=d>0?"up":d<0?"down":"";return `<td class="chg ${c}">${sgn(d)}</td><td class="chg ${c}">${pct(a,b)}</td>`}
@@ -508,8 +525,9 @@ function renderPockets(m){
   if(P.unassigned.length){const open=S.pk.open.has("__none");
     h+=`<h3>Complaints without a clear area (${P.unassigned.length})</h3><p class="muted small" style="margin:0 0 8px">These addresses are too short, vague or one-off to group. Add a rule below if you spot a locality that should be grouped.</p>
     <button class="btn sm" id="pkNone">${open?"Hide":"Show"} these complaints</button>${open?`<div class="tw" style="margin-top:8px">${detailTable(P.unassigned,"unassigned")}</div>`:""}`}
+  if(SHARED&&!ADMIN)return h;
   h+=`<details class="rules"${S.pk.rulesOpen?" open":""} id="rulesBox"><summary>Area grouping rules</summary><div class="body">
-    <p class="small muted" style="margin:0 0 8px;max-width:85ch">One rule per line: keywords separated by commas, then <strong>=</strong> and the area name. If an address contains any keyword, it goes into that area. The first matching rule wins, so put specific places above broad ones. Addresses that match no rule are grouped automatically by the locality names that repeat in the file. Rules are saved in this browser.</p>
+    <p class="small muted" style="margin:0 0 8px;max-width:85ch">One rule per line: keywords separated by commas, then <strong>=</strong> and the area name. If an address contains any keyword, it goes into that area. The first matching rule wins, so put specific places above broad ones. Addresses that match no rule are grouped automatically by the locality names that repeat in the file. Saved rules apply for everyone who opens the report.</p>
     <textarea id="rulesTa" spellcheck="false" aria-label="Area grouping rules">${esc(S.rules)}</textarea>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn primary sm" id="rulesSave">Save and regroup</button><button class="btn sm" id="rulesReset">Restore default rules</button><span class="small muted" id="rulesMsg"></span></div></div></details>`;
   return h;
@@ -529,6 +547,11 @@ function render(){
   if(!(m.ta+m.tb)){$("view").innerHTML=`<div class="tw"><div class="empty">No complaints match these dates and filters.</div></div>`;return}
   if(S.tab==="compare"){
     h+=`<div class="totals"><div><div class="k">Previous, ${esc(fmtRange(S.A))}</div><div class="v">${m.ta}</div></div><div><div class="k">Current, ${esc(fmtRange(S.B))}</div><div class="v">${m.tb}</div></div><div><div class="k">Change</div><div class="v chg ${m.tb>m.ta?"up":m.tb<m.ta?"down":""}">${sgn(m.tb-m.ta)} <span style="font-size:15px">${pct(m.ta,m.tb)}</span></div></div></div>`;
+    const dA=dupCount(m.A),dB=dupCount(m.B),gB=dupGroups(m.B);
+    h+=`<div class="totals dup"><div><div class="k">Duplicate complaints, previous</div><div class="v">${dA}</div><div class="s">${m.ta?Math.round(dA/m.ta*100):0}% of ${m.ta}</div></div><div><div class="k">Duplicate complaints, current</div><div class="v">${dB}</div><div class="s">${m.tb?Math.round(dB/m.tb*100):0}% of ${m.tb}</div></div><div><div class="k">Duplicate change</div><div class="v chg ${dB>dA?"up":dB<dA?"down":""}">${sgn(dB-dA)} <span style="font-size:15px">${pct(dA,dB)}</span></div><div class="s">Unique complaints now: ${m.tb-dB}</div></div></div>`;
+    h+=`<p class="muted small" style="margin:4px 0 0">A duplicate is a repeat complaint about the same problem at the same address in the same ward. The first one is counted as original, every repeat as a duplicate.</p>`;
+    if(gB.length)h+=`<details class="dupl"><summary>See duplicate groups in ${esc(fmtRange(S.B))} (${gB.length})</summary><div class="tw" style="margin-top:8px"><table data-tid="dups"><thead><tr><th>Times</th><th class="l">Problem</th><th class="l">Ward</th><th class="l">Complaint Nos.</th><th class="l">Location address</th></tr></thead><tbody>`+
+      gB.map(x=>`<tr><td><strong>${x.length}</strong></td><td class="l">${esc(x[0].problem)}</td><td class="l">${esc(x[0].ward)}</td><td class="l wrap">${esc(x.map(r=>r.complaint).join(", "))}</td><td class="l wrap">${esc(x[0].addr||"—")}</td></tr>`).join("")+`</tbody></table></div></details>`;
     h+=`<ul class="obs">`+observations(m).map(o=>`<li>${esc(o)}</li>`).join("")+`</ul>`;
     h+=`<h3>By complaint type</h3>`+cmpTable("Complaint type",m.probs,"Grand Total","type");
     h+=`<h3>By ward, all selected types</h3>`+cmpTable("Ward",m.wards,"Total","ward");
