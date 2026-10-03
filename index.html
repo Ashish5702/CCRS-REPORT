@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Weekly complaint comparison</title>
+<title>Daily complaint comparison</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -118,6 +118,7 @@ tr.pk.open td:first-child::before{transform:rotate(45deg)}
 tr.det > td{background:var(--paper);padding:0}
 tr.det table{font-size:13px}
 tr.det th{background:transparent}
+tr.det .tbar{padding:10px 12px 0;margin:0}
 .rank{display:inline-block;min-width:1.6em;font-weight:800}
 .bar{display:inline-block;height:8px;background:var(--lane);border-radius:2px;vertical-align:middle;margin-left:8px}
 .tag{display:inline-block;font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--up-bg);color:var(--up)}
@@ -133,21 +134,87 @@ table[data-tid]:not([data-nosort]) thead th:hover{color:var(--focus)}
 table[data-tid] thead th[aria-sort]::after{content:"";display:inline-block;margin-left:6px;border-left:4px solid transparent;border-right:4px solid transparent;vertical-align:middle}
 table[data-tid] thead th[aria-sort="descending"]::after{border-top:6px solid currentColor}
 table[data-tid] thead th[aria-sort="ascending"]::after{border-bottom:6px solid currentColor}
+.quick .btn.on{background:var(--asphalt);border-color:var(--asphalt);color:var(--asphalt-ink)}
+.quick{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px}
+tr.grp{cursor:pointer}
+tr.grp:hover td,tr.grp.open td{background:var(--tint)}
+tr.grp .pm{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:8px;border:1.5px solid var(--muted);border-radius:4px;font-weight:800;font-size:14px;line-height:1;vertical-align:-3px;color:var(--ink)}
+tr.grp .pm::before{content:"+"}
+tr.grp.open .pm::before{content:"\2212"}
+tr.grp.open .pm{background:var(--asphalt);border-color:var(--asphalt);color:var(--asphalt-ink)}
+tr.sub td{background:var(--paper);font-size:13px}
+tr.sub td:first-child{padding-left:38px}
+.seg{display:inline-flex;gap:0}
+.seg .btn{border-radius:0}.seg .btn:first-child{border-radius:6px 0 0 6px}.seg .btn:last-child{border-radius:0 6px 6px 0;margin-left:-1px}
+.seg .btn.on{background:var(--asphalt);border-color:var(--asphalt);color:var(--asphalt-ink)}
+.trendsum{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.tchip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--paper);border:1px solid var(--line)}
+.trendsum .tchip{font-size:13px;padding:4px 10px}
+.t-chronic{background:#fde8e6;border-color:#f3b8b1;color:#8f2418}
+.t-new{background:#e5f4ea;border-color:#a9d9b8;color:#1e6b3a}
+.t-up{background:#fff1df;border-color:#f2c88e;color:#8a4b00}
+.t-down{background:#e8f0fb;border-color:#b5cbec;color:#1f4f8f}
+@media (prefers-color-scheme:dark){.t-chronic,.t-new,.t-up,.t-down{background:var(--paper);color:var(--ink)}}
 footer{margin-top:30px;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- phone layout ---- */
+@media (max-width:640px){
+  body{font-size:14px}
+  header.band .in{padding:16px 14px 20px}
+  main{padding:14px 12px 48px}
+  .panel{padding:14px}
+  .drop{padding:18px 12px}
+  .filters{grid-template-columns:1fr 1fr;gap:8px}
+  .dates input{flex:1 1 130px}
+  /* tabs: one swipeable row instead of 3 stacked rows */
+  .tabsbar{flex-direction:column;align-items:stretch;gap:10px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:8px 12px}
+  #dlBtn{justify-content:center}
+  .totals{grid-template-columns:1fr 1fr}
+  .totals .v{font-size:20px}
+  .grid2{grid-template-columns:1fr}
+  /* tables: wrap the words, keep the numbers on one line */
+  table{font-size:13px}
+  th,td{padding:6px 8px}
+  thead th{white-space:normal;vertical-align:bottom;min-width:4.5em;line-height:1.25}
+  th:first-child,td:first-child,td.l,th.l{white-space:normal;overflow-wrap:break-word}
+  .tbar{flex-wrap:wrap}
+  .tbar > span:last-child{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto}
+  .tbar > span:first-child:empty{display:none}
+  td:first-child{min-width:8.5em}
+  td.l{min-width:7em}
+  td.wrap{min-width:180px;max-width:none}
+  td.l:last-child{min-width:210px}
+  tr.grp td:first-child{min-width:9.5em}
+  /* first column stays visible while you swipe sideways */
+  .tw > table > thead > tr > th:first-child,
+  .tw > table > tbody > tr:not(.det) > td:first-child{position:sticky;left:0;z-index:1;background:var(--surface);box-shadow:1px 0 0 var(--line)}
+  .tw > table > thead > tr > th:first-child{background:var(--tint);z-index:2}
+  .tw > table > tbody > tr.cat:not(.det) > td:first-child,
+  .tw > table > tbody > tr.pk:not(.det):hover > td:first-child,
+  .tw > table > tbody > tr.grp.open:not(.det) > td:first-child,
+  .tw > table > tbody > tr.grp:not(.det):hover > td:first-child{background:var(--tint)}
+  .tw > table > tbody > tr.sub:not(.det) > td:first-child{background:var(--paper);padding-left:30px}
+  .quick .btn{flex:1 1 auto;justify-content:center}
+  .obs{padding-left:18px}
+  .pk-ctl{gap:10px}
+}
 </style>
 </head>
 <body>
 <header class="band"><div class="in">
-  <h1>Weekly complaint comparison</h1>
-  <p>Category-wise, ward-wise and pocket-area report from the AMC Full Complaint export</p>
+  <h1>Daily complaint comparison</h1>
+  <p>Day-by-day category-wise, ward-wise and pocket-area report from the AMC Full Complaint export</p>
 </div></header>
 <main>
   <section class="panel" id="upPanel" aria-labelledby="up-h">
     <h2 id="up-h">Add your export files</h2>
     <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose Excel files">
       <strong>Drop the Full Complaint Excel files here</strong>
-      <span class="muted">or click to choose. Add this week's and last week's files to compare them.</span>
+      <span class="muted">or click to choose. Add each day's file. The report compares the latest day with the day before. Use the quick-pick buttons for 3 or 7 days.</span>
     </div>
     <input type="file" id="fileIn" accept=".xlsx,.xls" multiple hidden>
     <ul class="files" id="fileList"></ul>
@@ -164,6 +231,10 @@ footer{margin-top:30px;font-size:13px;color:var(--muted)}
       <fieldset><legend>Current period</legend><div class="dates">
         <input type="date" id="bFrom" aria-label="Current period from"> to <input type="date" id="bTo" aria-label="Current period to"></div></fieldset>
     </div>
+    <div class="quick" id="quick"><span class="muted small">Quick pick:</span>
+      <button class="btn sm" data-days="1">Latest day vs day before</button>
+      <button class="btn sm" data-days="3">Last 3 days vs 3 before</button>
+      <button class="btn sm" data-days="7">Last 7 days vs 7 before</button></div>
     <div class="filters" id="filters"></div>
     <div class="active-f" id="activeF"></div>
     <div class="note" id="periodNote" hidden></div>
@@ -174,7 +245,7 @@ footer{margin-top:30px;font-size:13px;color:var(--muted)}
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="compare" aria-selected="true">Comparison</button>
         <button class="tab" role="tab" data-tab="pockets" aria-selected="false">Pocket areas</button>
-        <button class="tab" role="tab" data-tab="pivot" aria-selected="false">Weekly pivot</button>
+        <button class="tab" role="tab" data-tab="pivot" aria-selected="false">Pivot</button>
         <button class="tab" role="tab" data-tab="matrix" aria-selected="false">Ward matrix</button>
         <button class="tab" role="tab" data-tab="status" aria-selected="false">Status</button>
       </div>
@@ -191,8 +262,10 @@ footer{margin-top:30px;font-size:13px;color:var(--muted)}
 const STOP=new Set("ni na nu no ne ma same samne sammukh baju bajuma bajume pase paase pasena pachhal pachad pachhad pachal pachhadi jode thi sudhi to and the of opp near nr behind beside besides agal aagal ke ki ka ahmedabad amdavad ahemdabad gujarat india north zone shop block part vibhag gali galli number gate plot house no flat wing floor ground call citizen main local ni".split(" "));
 const GEN=new Set("cinema line mill villa hotel talav lake bhai ben bhen patel shah cross darwaja road rd marg street lane nagar society colony chali vas vaas park flats apartment apartments bungalow tenament estate complex plaza tower towers residency heights city township row houses market mandir temple school hospital clinic masjid station railway bus stop highway circle rasta char chowk chok corner gam area ward water tank pump petrol cng bank office garden sector industrial".split(" "));
 const QUAL=new Set("new old juni navi nava gam".split(" "));
-let WARDTOK=new Set();
-const VARIANTS=[[/bunglows?|bungalows?|banglow|bangla/g,"bungalow"],[/chawls?|chaali|chalis/g,"chali"],[/gaam|gaon/g,"gam"],[/hansh?pura/g,"hanspura"],[/tenn?[ae]m[ae]n?ts?|tenamnet|tenement/g,"tenament"],[/nobal/g,"noble"],[/sardarnagar/g,"sardar nagar"],[/bapunagar/g,"bapu nagar"],[/kubernagar/g,"kuber nagar"],[/thakkarbapanagar|thakkar bapa nagar/g,"thakkarbapa nagar"],[/appartment/g,"apartment"],[/\bsoc\b|socity|sosayti|societies/g,"society"],[/\bhights\b/g,"heights"],[/vibhag/g,"vibhag"]];
+let WARDTOK=new Set(),WARDKEYS=new Set();
+const SOC=new Set("society colony nagar chali vas tenament residency awas flats apartment apartments ghb township bungalow".split(" "));
+const isSoc=c=>c.split(" ").some(t=>SOC.has(t));
+const VARIANTS=[[/\b(?:gujarath?|gujrath?|guj)\.?\s*housing\s*(?:board)?\b|\bg\s?h\s?b\b/g," ghb "],[/gujrat|gujrath/g,"gujarat"],[/resid[ae]n[cs]y|recid[ae]n[cs]y|resident?cy/g,"residency"],[/colon[iy]e?s?\b|kolon[iy]/g,"colony"],[/naa?gar\b/g,"nagar"],[/awas|aavas|aawas/g,"awas"],[/\bvaas\b/g,"vas"],[/bunglows?|bungalows?|banglow|bangla/g,"bungalow"],[/chawls?|chaali|chalis/g,"chali"],[/gaam|gaon/g,"gam"],[/hansh?pura/g,"hanspura"],[/tenn?[ae]m[ae]n?ts?|tenamnet|tenement/g,"tenament"],[/nobal/g,"noble"],[/sardarnagar/g,"sardar nagar"],[/bapunagar/g,"bapu nagar"],[/kubernagar/g,"kuber nagar"],[/thakkarbapanagar|thakkar bapa nagar/g,"thakkarbapa nagar"],[/appartment/g,"apartment"],[/\bsoc\b|socity|sosayti|societies/g,"society"],[/\bhights\b/g,"heights"],[/vibhag/g,"vibhag"]];
 function tokensOf(s){
   s=String(s||"").toLowerCase().replace(/\b[0-9a-z]{4}\+[0-9a-z]{2,3}\b/g," ").replace(/\d+/g," ");
   for(const [re,r] of VARIANTS)s=s.replace(re,r);
@@ -204,7 +277,7 @@ function candidates(segs,wardKey){
   for(const seg of segs){
     let run=[];
     const flush=()=>{for(let i=0;i<run.length;i++)for(let n=1;n<=3&&i+n<=run.length;n++){const g=run.slice(i,i+n);
-      const ok=g.some(t=>!GEN.has(t)&&!QUAL.has(t)&&!WARDTOK.has(t))||(g.some(t=>WARDTOK.has(t))&&g.some(t=>QUAL.has(t)));if(!ok)continue;out.add(g.join(" "))}run=[]};
+      const ok=g.some(t=>!GEN.has(t)&&!QUAL.has(t)&&!WARDTOK.has(t))||(g.some(t=>WARDTOK.has(t))&&g.some(t=>QUAL.has(t)))||(g.length>1&&g.some(t=>WARDTOK.has(t))&&g.some(t=>SOC.has(t))&&!g.every(t=>WARDTOK.has(t)||t==="nagar")&&!WARDKEYS.has(g.join("")));if(!ok)continue;out.add(g.join(" "))}run=[]};
     for(const t of seg){if(t.length<2||STOP.has(t))flush();else run.push(t)}
     flush();
   }
@@ -220,11 +293,11 @@ function parseRules(text){
   }
   return rules;
 }
-function titleCase(s){return s.replace(/(^|\s)([a-z])/g,(m,a,b)=>a+b.toUpperCase())}
+function titleCase(s){return s.replace(/(^|\s)([a-z])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\bGhb\b/g,"Gujarat Housing Board")}
 function assignAreas(rows,rulesText){
   const rules=parseRules(rulesText);
   const byWard=new Map();
-  WARDTOK=new Set();for(const r of rows)for(const t of tokensOf(r.ward).flat())WARDTOK.add(t);["hansol","nikol","ahmedabad"].forEach(t=>WARDTOK.add(t));
+  WARDTOK=new Set();WARDKEYS=new Set();for(const r of rows){for(const t of tokensOf(r.ward).flat())WARDTOK.add(t);WARDKEYS.add(compactOf(tokensOf(r.ward)))}["hansol","nikol","ahmedabad"].forEach(t=>WARDTOK.add(t));
   for(const r of rows){const segs=tokensOf(r.addr);r._compact=compactOf(segs);
     r._spot=r._compact.slice(0,36);
     const wk=compactOf(tokensOf(r.ward));r._c=candidates(segs,wk);
@@ -237,7 +310,7 @@ function assignAreas(rows,rulesText){
       const rule=rules.find(ru=>ru.kws.some(k=>r._compact.includes(k)));
       if(rule){r.area=rule.name;r.areaSrc="rule";continue}
       let best=null,bs=-1;
-      for(const c of r._c){const d=df.get(c);if(d<2||d>cap)continue;const n=c.split(" ").length;const s=Math.min(d,cap)*(1+0.5*(n-1));
+      for(const c of r._c){const d=df.get(c);const soc=isSoc(c);if(d<2||(d>cap&&!soc))continue;const n=c.split(" ").length;const s=(soc?d:Math.min(d,cap))*(1+0.5*(n-1));
         if(s>bs||(s===bs&&c.length>best.length)){bs=s;best=c}}
       r.area=best?titleCase(best):null;
     }
@@ -262,7 +335,7 @@ const FILTERS=[
 const PARENT={ward:["dept",r=>r.dept||"(blank)"],problem:["cat",r=>r.cat]};
 const baseFor=(key,all)=>{const p=PARENT[key];return p?all.filter(r=>!S.ex[p[0]].has(p[1](r))):all};
 const S={files:[],rows:new Map(),A:{from:"",to:""},B:{from:"",to:""},ex:{},firstLoad:true,tab:"compare",
-  pk:{period:"B",min:2,open:new Set()},rules:DEFAULT_RULES};
+  pk:{period:"B",min:2,open:new Set(),view:"list",topN:7},rules:DEFAULT_RULES};
 FILTERS.forEach(f=>S.ex[f.key]=new Set());
 /* ---------- shared storage (Netlify) ---------- */
 let SHARED=false;
@@ -295,7 +368,7 @@ function parseDate(v){
 }
 const MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDay(s){if(!s)return"";const [y,m,d]=s.split("-").map(Number);return d+" "+MN[m-1]}
-function fmtRange(p){if(!p.from||!p.to)return"—";if(p.from.slice(0,7)===p.to.slice(0,7))return(+p.from.slice(8))+"–"+fmtDay(p.to);return fmtDay(p.from)+" – "+fmtDay(p.to)}
+function fmtRange(p){if(!p.from||!p.to)return"—";if(p.from===p.to)return fmtDay(p.from);if(p.from.slice(0,7)===p.to.slice(0,7))return(+p.from.slice(8))+"–"+fmtDay(p.to);return fmtDay(p.from)+" – "+fmtDay(p.to)}
 const yr=p=>p.to?p.to.slice(0,4):"";
 
 /* ---------- reading files ---------- */
@@ -369,17 +442,14 @@ function rebuild(resetPeriods){
   if(resetPeriods)defaultPeriods();
   render();
 }
-function defaultPeriods(){
-  const ranges=[...new Map(S.files.map(f=>[f.from+"|"+f.to,{from:f.from,to:f.to}])).values()].sort((a,b)=>a.from<b.from?-1:1);
-  if(ranges.length>=2){S.B={...ranges[ranges.length-1]};S.A={...ranges[ranges.length-2]}}
-  else{
-    const ds=[...S.rows.values()].map(r=>r.date).sort();const max=ds[ds.length-1];
-    const bFrom=ranges.length===1?ranges[0].from:addDays(max,-6);const bTo=ranges.length===1?ranges[0].to:max;
-    const len=Math.round((new Date(bTo)-new Date(bFrom))/864e5);
-    S.B={from:bFrom,to:bTo};S.A={from:addDays(bFrom,-(len+1)),to:addDays(bFrom,-1)};
-    if(len>=13){S.B={from:addDays(bTo,-6),to:bTo};S.A={from:addDays(bTo,-13),to:addDays(bTo,-7)}}
-  }
+const DEFAULT_DAYS=1;
+function defaultPeriods(){setLastDays(DEFAULT_DAYS,latestDate(),true)}
+function latestDate(){const ds=[...S.rows.values()].map(r=>r.date).sort();return ds[ds.length-1]}
+function setLastDays(n,max,noRender){
+  max=max||latestDate();if(!max)return;
+  S.B={from:addDays(max,-(n-1)),to:max};S.A={from:addDays(max,-(2*n-1)),to:addDays(max,-n)};
   $("aFrom").value=S.A.from;$("aTo").value=S.A.to;$("bFrom").value=S.B.from;$("bTo").value=S.B.to;
+  if(!noRender)render();
 }
 function renderFiles(){
   $("fileList").innerHTML=S.files.map((f,i)=>`<li><span><strong>${esc(f.name)}</strong><br><span class="muted small">${esc(fmtRange(f))} ${f.from.slice(0,4)}${f.zone?", "+esc(f.zone)+" zone":""}, ${f.rows.length.toLocaleString("en-IN")} rows</span></span><button class="x" data-rm="${i}">Remove</button></li>`).join("");
@@ -438,8 +508,11 @@ function model(){
   const dk=r=>r.dept||"(blank)";
   const depts=joinRows(tally(A,dk),tally(B,dk));
   const byDept=depts.map(d=>({label:d.label,a:d.a,b:d.b,rows:joinRows(tally(A.filter(r=>dk(r)===d.label),r=>r.ward),tally(B.filter(r=>dk(r)===d.label),r=>r.ward))}));
-  return {A,B,probs,wards,depts,byDept,byProb,allWards,ta:A.length,tb:B.length};
+  const byWard=wards.map(w=>({label:w.label,a:w.a,b:w.b,rows:joinRows(tally(A.filter(r=>r.ward===w.label),r=>r.problem),tally(B.filter(r=>r.ward===w.label),r=>r.problem))}));
+  return {A,B,probs,wards,depts,byDept,byWard,byProb,allWards,ta:A.length,tb:B.length};
 }
+const TRENDS={chronic:"🔴 Chronic",new:"🟢 New",up:"🔺 Rising",down:"🔻 Falling",same:"– Same"};
+function trendOf(n,prev){return prev>=2&&n>=2?"chronic":prev===0?"new":n>prev?"up":n<prev?"down":"same"}
 function pockets(m,period,min){
   const cur=period==="A"?m.A:period==="AB"?m.A.concat(m.B):m.B;
   const groups=new Map();
@@ -448,7 +521,8 @@ function pockets(m,period,min){
   const out=[...groups.entries()].map(([k,g])=>{
     const probs=[...tally(g.list,r=>r.problem).entries()].sort((a,b)=>b[1]-a[1]);
     const spots=[...tally(g.list,r=>r._spot).values()].filter(n=>n>1);
-    return {key:k,ward:g.ward,area:g.area,n:g.list.length,prev:prevCount.get(k)||0,pending:g.list.filter(r=>PENDING.has(r.status)).length,
+    const n=g.list.length,prev=prevCount.get(k)||0;
+    return {key:k,ward:g.ward,area:g.area,n,prev,trend:period==="B"?trendOf(n,prev):null,pending:g.list.filter(r=>PENDING.has(r.status)).length,
       slaPassed:g.list.filter(r=>/pass/i.test(r.sla)).length,probs,repeatSpots:spots.length,repeatRows:spots.reduce((s,n)=>s+n,0),
       list:g.list.slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0)};
   }).filter(p=>p.n>=min).sort((a,b)=>b.n-a.n||b.pending-a.pending||a.area.localeCompare(b.area));
@@ -458,7 +532,7 @@ function pockets(m,period,min){
 }
 function observations(m){
   const out=[];const la=fmtRange(S.A),lb=fmtRange(S.B);
-  if(m.ta===0){out.push(`There are no complaints in the previous period (${la}) in the loaded files. Add last week's export to see the change.`);return out}
+  if(m.ta===0){out.push(`There are no complaints in the previous period (${la}) in the loaded files. Add the export for those dates to see the change.`);return out}
   const d=m.tb-m.ta;
   out.push(`Complaints ${d>0?"rose":d<0?"fell":"stayed flat"} from ${m.ta} to ${m.tb}${d?` (${sgn(d)}, ${pct(m.ta,m.tb)})`:""}.`);
   const pr=[...m.probs].sort((x,y)=>Math.abs(y.b-y.a)-Math.abs(x.b-x.a))[0];
@@ -488,11 +562,19 @@ function cmpTable(firstHead,rows,totalLabel,tid){
     rows.map(r=>`<tr><td>${esc(r.label)}</td><td>${r.a}</td><td>${r.b}</td>${chgCell(r.a,r.b)}</tr>`).join("")+
     `<tr class="tot"><td>${esc(totalLabel)}</td><td>${ta}</td><td>${tb}</td>${chgCell(ta,tb)}</tr></tbody></table></div>`;
 }
-function deptWardTable(m){
-  return `<div class="tw"><table data-tid="deptward" data-nosort><thead><tr><th>Department / Ward</th><th>${esc(fmtRange(S.A))}</th><th>${esc(fmtRange(S.B))}</th><th>Change</th><th>% change</th></tr></thead><tbody>`+
-    m.byDept.map(d=>`<tr class="cat"><td><strong>${esc(d.label)}</strong></td><td><strong>${d.a}</strong></td><td><strong>${d.b}</strong></td>${chgCell(d.a,d.b)}</tr>`+
-      d.rows.map(r=>`<tr><td style="padding-left:28px">${esc(r.label)}</td><td>${r.a}</td><td>${r.b}</td>${chgCell(r.a,r.b)}</tr>`).join("")).join("")+
-    `<tr class="tot"><td>Total</td><td>${m.ta}</td><td>${m.tb}</td>${chgCell(m.ta,m.tb)}</tr></tbody></table></div>`;
+S.grp={};
+function grpTable(tid,firstHead,groups,ta,tb,kidName){
+  const open=S.grp[tid]||(S.grp[tid]=new Set());
+  return `<div class="tw"><table data-tid="${esc(tid)}" data-grp><thead><tr><th>${esc(firstHead)}</th><th>${esc(fmtRange(S.A))}</th><th>${esc(fmtRange(S.B))}</th><th>Change</th><th>% change</th></tr></thead><tbody>`+
+    groups.map(g=>{const o=open.has(g.label);
+      return `<tr class="grp${o?" open":""}" data-g="${esc(g.label)}" tabindex="0" aria-expanded="${o}" title="Show ${esc(kidName)}"><td data-sort="${esc(g.label)}"><span class="pm" aria-hidden="true"></span><strong>${esc(g.label)}</strong></td><td>${g.a}</td><td>${g.b}</td>${chgCell(g.a,g.b)}</tr>`+
+      g.rows.map(r=>`<tr class="sub" data-g="${esc(g.label)}"${o?"":" hidden"}><td data-sort="${esc(r.label)}">${esc(r.label)}</td><td>${r.a}</td><td>${r.b}</td>${chgCell(r.a,r.b)}</tr>`).join("")}).join("")+
+    `<tr class="tot"><td>Total</td><td>${ta}</td><td>${tb}</td>${chgCell(ta,tb)}</tr></tbody></table></div>`;
+}
+function setGroup(t,key,on){
+  const set=S.grp[t.dataset.tid]||(S.grp[t.dataset.tid]=new Set());on?set.add(key):set.delete(key);
+  for(const r of t.tBodies[0].rows){if(r.dataset.g!==key)continue;
+    if(r.classList.contains("grp")){r.classList.toggle("open",on);r.setAttribute("aria-expanded",String(on))}else r.hidden=!on}
 }
 function pivotRows(list,m){
   const out=[];
@@ -524,18 +606,41 @@ function detailTable(list,tid){
   return `<table data-tid="${esc(tid)}"><thead><tr><th class="l">Date</th><th class="l">Complaint No.</th><th class="l">Problem</th><th class="l">Status</th><th class="l">SLA</th><th class="l">Location address</th></tr></thead><tbody>`+
     list.map(r=>`<tr><td data-sort="${r.date}">${esc(fmtDay(r.date))}</td><td class="l">${esc(r.complaint)}</td><td class="l">${esc(r.problem)}</td><td class="l">${esc(r.status)}</td><td class="l">${esc(r.sla)}</td><td class="l wrap">${esc(r.addr||"—")}</td></tr>`).join("")+`</tbody></table>`;
 }
+function top7Data(m,P){
+  const cur=S.pk.period==="A"?m.A:S.pk.period==="AB"?m.A.concat(m.B):m.B;
+  const wt=tally(cur,r=>r.ward),wp=S.pk.period==="B"?tally(m.A,r=>r.ward):new Map();
+  const by=new Map();for(const p of P.list){if(!by.has(p.ward))by.set(p.ward,[]);by.get(p.ward).push(p)}
+  const wards=[...by.entries()].map(([w,l])=>({ward:w,n:wt.get(w)||0,prev:wp.get(w)||0,pending:cur.filter(r=>r.ward===w&&PENDING.has(r.status)).length,all:l.length,top:S.pk.topN?l.slice(0,S.pk.topN):l}))
+    .sort((a,b)=>b.n-a.n||a.ward.localeCompare(b.ward));
+  const none=[...wt.keys()].filter(w=>!by.has(w)).sort((a,b)=>wt.get(b)-wt.get(a));
+  return {wards,none,wt};
+}
+function top7Table(m,P){
+  const T=top7Data(m,P),sp=S.pk.period==="B";const open=S.grp.top7||(S.grp.top7=new Set());
+  let h=`<div class="tw"><table data-tid="top7" data-grp><thead><tr><th>Ward / Pocket area</th><th>Complaints</th>${sp?`<th>Previous</th><th>Change</th><th class="l">Trend</th>`:""}<th>Pending</th><th class="l">Main problems</th></tr></thead><tbody>`+
+    T.wards.map(w=>{const o=open.has(w.ward);const d=w.n-w.prev;
+      return `<tr class="grp${o?" open":""}" data-g="${esc(w.ward)}" tabindex="0" aria-expanded="${o}" title="Show top pockets"><td data-sort="${esc(w.ward)}"><span class="pm" aria-hidden="true"></span><strong>${esc(w.ward)}</strong> <span class="muted small">(${w.top.length===w.all?w.all+" pocket"+(w.all>1?"s":""):"top "+w.top.length+" of "+w.all})</span></td><td><strong>${w.n}</strong></td>${sp?`<td>${w.prev}</td><td class="chg ${d>0?"up":d<0?"down":""}">${sgn(d)}</td><td class="l"></td>`:""}<td>${w.pending}</td><td class="l"></td></tr>`+
+        w.top.map((p,i)=>{const d=p.n-p.prev;const po=S.pk.open.has(p.key);return `<tr class="sub pk${po?" open":""}" data-g="${esc(w.ward)}" data-pk="${esc(p.key)}" tabindex="0" aria-expanded="${po}"${o?"":" hidden"}><td data-sort="${esc(p.area)}"><span class="rank">${i+1}</span> ${esc(p.area)}</td><td>${p.n}</td>${sp?`<td>${p.prev}</td><td class="chg ${d>0?"up":d<0?"down":""}">${sgn(d)}</td><td class="l"><span class="tchip t-${p.trend}">${TRENDS[p.trend]}</span></td>`:""}<td>${p.pending}</td><td class="l">${esc(probShort(p))}</td></tr>`+(po?`<tr class="det" data-g="${esc(w.ward)}"${o?"":" hidden"}><td colspan="${sp?7:4}"><div style="overflow-x:auto;padding:10px 12px">${detailTable(p.list,"det7:"+p.key)}</div></td></tr>`:"")}).join("")}).join("")+
+    `</tbody></table></div>`;
+  if(T.none.length)h+=`<p class="muted small" style="margin:8px 0 0">Wards with no pocket of ${S.pk.min}+ complaints: ${esc(T.none.map(w=>w+" ("+T.wt.get(w)+")").join(", "))}.</p>`;
+  return h;
+}
 function renderPockets(m){
   const P=pockets(m,S.pk.period,S.pk.min);const lab=S.pk.period==="A"?fmtRange(S.A):S.pk.period==="AB"?"both periods":fmtRange(S.B);
-  let h=`<div class="pk-ctl"><label>Period <select id="pkPeriod"><option value="B">Current (${esc(fmtRange(S.B))})</option><option value="A">Previous (${esc(fmtRange(S.A))})</option><option value="AB">Both periods</option></select></label>
-    <label>Show areas with at least <select id="pkMin">${[2,3,5,10].map(n=>`<option value="${n}"${S.pk.min===n?" selected":""}>${n}</option>`).join("")}</select> complaints</label></div>`;
+  let h=`<div class="pk-ctl"><div class="seg" role="group" aria-label="Pocket view"><button class="btn sm${S.pk.view==="top7"?"":" on"}" data-pkview="list">All pockets</button><button class="btn sm${S.pk.view==="top7"?" on":""}" data-pkview="top7">Ward-wise</button></div><label>Period <select id="pkPeriod"><option value="B">Current (${esc(fmtRange(S.B))})</option><option value="A">Previous (${esc(fmtRange(S.A))})</option><option value="AB">Both periods</option></select></label>
+    <label>Show areas with at least <select id="pkMin">${[1,2,3,5,10].map(n=>`<option value="${n}"${S.pk.min===n?" selected":""}>${n}</option>`).join("")}</select> complaints</label>${S.pk.view==="top7"?`<label>Show <select id="pkTop">${[3,5,7,10,0].map(n=>`<option value="${n}"${S.pk.topN===n?" selected":""}>${n?"Top "+n:"All"}</option>`).join("")}</select> per ward</label>`:""}</div>`;
   h+=`<p class="muted small" style="margin:0 0 10px">${P.list.length} pocket areas in ${esc(lab)} hold ${P.inPockets} of ${P.total} complaints. Click a row to see the complaints and addresses. Same spot counts addresses that repeat almost word for word.</p>`;
+  if(P.list[0]&&P.list[0].trend){const c={};P.list.forEach(p=>c[p.trend]=(c[p.trend]||0)+1);
+    h+=`<div class="trendsum">${["chronic","new","up","down"].map(k=>`<span class="tchip t-${k}">${TRENDS[k]} <strong>${c[k]||0}</strong></span>`).join("")}</div>
+    <p class="muted small" style="margin:0 0 10px">Chronic = 2 or more complaints in both periods. New = none in the previous period. Rising / Falling = compared with ${esc(fmtRange(S.A))}.</p>`}
   if(!P.list.length)h+=`<div class="tw"><div class="empty">No area has ${S.pk.min} or more complaints with the current filters.</div></div>`;
+  else if(S.pk.view==="top7")h+=top7Table(m,P);
   else{
     const max=P.list[0].n;const showPrev=S.pk.period==="B";
-    h+=`<div class="tw"><table data-tid="pockets"><thead><tr><th>Pocket area</th><th class="l">Ward</th><th>Complaints</th>${showPrev?`<th>Previous</th><th>Change</th>`:""}<th>Pending</th><th>SLA passed</th><th>Same spot</th><th class="l">Main problems</th></tr></thead><tbody>`+
+    h+=`<div class="tw"><table data-tid="pockets"><thead><tr><th>Pocket area</th><th class="l">Ward</th><th>Complaints</th>${showPrev?`<th>Previous</th><th>Change</th><th class="l">Trend</th>`:""}<th>Pending</th><th>SLA passed</th><th>Same spot</th><th class="l">Main problems</th></tr></thead><tbody>`+
       P.list.map((p,i)=>{const open=S.pk.open.has(p.key);const d=p.n-p.prev;
-        return `<tr class="pk${open?" open":""}" data-pk="${esc(p.key)}" tabindex="0" aria-expanded="${open}"><td data-sort="${esc(p.area)}"><span class="rank">${i+1}</span> <strong>${esc(p.area)}</strong></td><td class="l">${esc(p.ward)}</td><td><strong>${p.n}</strong><span class="bar" style="width:${Math.round(p.n/max*60)}px"></span></td>${showPrev?`<td>${p.prev}</td><td class="chg ${d>0?"up":d<0?"down":""}">${sgn(d)}</td>`:""}<td>${p.pending}</td><td>${p.slaPassed?`<span class="tag">${p.slaPassed}</span>`:"0"}</td><td>${p.repeatSpots?`${p.repeatRows} at ${p.repeatSpots} spot${p.repeatSpots>1?"s":""}`:"–"}</td><td class="l">${esc(probShort(p))}</td></tr>`+
-          (open?`<tr class="det"><td colspan="${showPrev?9:7}"><div style="overflow-x:auto;padding:10px 12px">${detailTable(p.list,"det:"+p.key)}</div></td></tr>`:"")}).join("")+`</tbody></table></div>`;
+        return `<tr class="pk${open?" open":""}" data-pk="${esc(p.key)}" tabindex="0" aria-expanded="${open}"><td data-sort="${esc(p.area)}"><span class="rank">${i+1}</span> <strong>${esc(p.area)}</strong></td><td class="l">${esc(p.ward)}</td><td><strong>${p.n}</strong><span class="bar" style="width:${Math.round(p.n/max*60)}px"></span></td>${showPrev?`<td>${p.prev}</td><td class="chg ${d>0?"up":d<0?"down":""}">${sgn(d)}</td><td class="l"><span class="tchip t-${p.trend}">${TRENDS[p.trend]}</span></td>`:""}<td>${p.pending}</td><td>${p.slaPassed?`<span class="tag">${p.slaPassed}</span>`:"0"}</td><td>${p.repeatSpots?`${p.repeatRows} at ${p.repeatSpots} spot${p.repeatSpots>1?"s":""}`:"–"}</td><td class="l">${esc(probShort(p))}</td></tr>`+
+          (open?`<tr class="det"><td colspan="${showPrev?10:7}"><div style="overflow-x:auto;padding:10px 12px">${detailTable(p.list,"det:"+p.key)}</div></td></tr>`:"")}).join("")+`</tbody></table></div>`;
   }
   if(P.unassigned.length){const open=S.pk.open.has("__none");
     h+=`<h3>Complaints without a clear area (${P.unassigned.length})</h3><p class="muted small" style="margin:0 0 8px">These addresses are too short, vague or one-off to group. Add a rule below if you spot a locality that should be grouped.</p>
@@ -553,8 +658,10 @@ function render(){
   const note=[];
   if(S.A.from&&S.B.from&&S.A.to>=S.B.from&&S.A.from<=S.B.to)note.push("The two periods overlap, so some complaints are counted in both.");
   const ds=[...S.rows.values()].map(r=>r.date).sort();const mn=ds[0],mx=ds[ds.length-1];
-  if(S.A.from&&(S.A.from<mn||S.A.to>mx))note.push(`The previous period goes outside the loaded data (${fmtDay(mn)} to ${fmtDay(mx)}). Add that week's export for a full count.`);
+  if(S.A.from&&(S.A.from<mn||S.A.to>mx))note.push(`The previous period goes outside the loaded data (${fmtDay(mn)} to ${fmtDay(mx)}). Add the export for those dates for a full count.`);
   else if(S.B.from&&(S.B.from<mn||S.B.to>mx))note.push(`The current period goes outside the loaded data (${fmtDay(mn)} to ${fmtDay(mx)}).`);
+  const mx2=latestDate();document.querySelectorAll("#quick [data-days]").forEach(b=>{const n=+b.dataset.days;
+    b.classList.toggle("on",S.B.to===mx2&&S.B.from===addDays(mx2,-(n-1))&&S.A.from===addDays(mx2,-(2*n-1))&&S.A.to===addDays(mx2,-n))});
   $("periodNote").hidden=!note.length;$("periodNote").textContent=note.join(" ");
   document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",String(t.dataset.tab===S.tab)));
   $("dlBtn").disabled=!(m.ta+m.tb)||!dlReady;
@@ -570,8 +677,8 @@ function render(){
     h+=`<ul class="obs">`+observations(m).map(o=>`<li>${esc(o)}</li>`).join("")+`</ul>`;
     h+=`<h3>By complaint type</h3>`+cmpTable("Complaint type",m.probs,"Grand Total","type");
     h+=`<h3>By department</h3>`+cmpTable("Department",m.depts,"Total","dept");
-    h+=`<h3>By department and ward</h3>`+deptWardTable(m);
-    h+=`<h3>By ward, all selected types</h3>`+cmpTable("Ward",m.wards,"Total","ward");
+    h+=`<h3>By department and ward</h3>`+grpTable("deptward","Department / Ward",m.byDept,m.ta,m.tb,"wards");
+    h+=`<h3>By ward, all selected types</h3>`+grpTable("ward","Ward / Complaint type",m.byWard,m.ta,m.tb,"complaint types");
     for(const p of m.byProb)h+=`<h3>${esc(p.label)} <span class="muted" style="font-weight:500">(${p.a} → ${p.b}, ${sgn(p.b-p.a)})</span></h3>`+cmpTable("Ward",p.rows,"Total","prob:"+p.label);
   }else if(S.tab==="pockets"){
     h+=renderPockets(m);
@@ -600,31 +707,34 @@ function cellVal(c){return c.dataset.sort!=null?c.dataset.sort:c.textContent.tri
 function numOf(v){let t=v.replace(/−/g,"-");if(t.includes("→"))t=t.split("→").pop().trim();
   if(t==="")return 0;if(t==="–"||t==="-")return -1e9;if(/^new$/i.test(t))return 1e9;
   if(!/^[+-]?\d/.test(t))return null;return parseFloat(t.replace(/[,+%]/g,""))}
-function units(tbody){const u=[],pin=[];for(const r of [...tbody.rows]){if(r.classList.contains("tot"))pin.push(r);else if(r.classList.contains("det")&&u.length)u[u.length-1].push(r);else u.push([r])}return {u,pin}}
+function units(tbody){const u=[],pin=[];for(const r of [...tbody.rows]){if(r.classList.contains("tot"))pin.push(r);else if((r.classList.contains("det")||r.classList.contains("sub"))&&u.length)u[u.length-1].push(r);else u.push([r])}return {u,pin}}
+function sortedIdx(rows,col,dir){const vals=rows.map(r=>cellVal(r.cells[col]||{dataset:{},textContent:""}));const numeric=vals.every(v=>numOf(v)!==null);
+  return rows.map((r,i)=>i).sort((a,b)=>{const x=vals[a],y=vals[b];const d=numeric?numOf(x)-numOf(y):x.localeCompare(y,undefined,{numeric:true,sensitivity:"base"});return (d||a-b)*(d?dir:1)})}
 function applySort(t){
   const st=S.sort[t.dataset.tid];const ths=[...t.tHead.rows[0].cells];ths.forEach(th=>th.removeAttribute("aria-sort"));
   if(!st||t.hasAttribute("data-nosort"))return;
   const th=ths[st.col];if(!th)return;th.setAttribute("aria-sort",st.dir>0?"ascending":"descending");
   const tb=t.tBodies[0];const {u,pin}=units(tb);
-  const vals=u.map(g=>cellVal(g[0].cells[st.col]||{dataset:{},textContent:""}));
-  const numeric=vals.every(v=>numOf(v)!==null);
-  const idx=u.map((g,i)=>i).sort((a,b)=>{const x=vals[a],y=vals[b];
-    const d=numeric?numOf(x)-numOf(y):x.localeCompare(y,undefined,{numeric:true,sensitivity:"base"});return (d||a-b)*(d?st.dir:1)});
-  idx.forEach(i=>u[i].forEach(r=>tb.appendChild(r)));pin.forEach(r=>tb.appendChild(r));
+  const idx=sortedIdx(u.map(g=>g[0]),st.col,st.dir);
+  idx.forEach(i=>{const g=u[i];const own=[],kids=[];
+    for(const r of g.slice(1)){if(r.classList.contains("sub"))kids.push([r]);else if(kids.length)kids[kids.length-1].push(r);else own.push(r)}
+    tb.appendChild(g[0]);own.forEach(r=>tb.appendChild(r));
+    sortedIdx(kids.map(k=>k[0]),st.col,st.dir).forEach(k=>kids[k].forEach(r=>tb.appendChild(r)))});
+  pin.forEach(r=>tb.appendChild(r));
 }
 function enhanceTables(){
   document.querySelectorAll("#view table[data-tid]").forEach(t=>{
     const host=t.parentElement;
     if(!(host.previousElementSibling&&host.previousElementSibling.classList.contains("tbar"))){
       const bar=document.createElement("div");bar.className="tbar";
-      bar.innerHTML=`<span>${t.hasAttribute("data-nosort")?"":"Click a column heading to sort"}</span><span><span class="msg"></span> <button class="btn" data-copy="${esc(t.dataset.tid)}">Copy table</button></span>`;
+      bar.innerHTML=`<span>${t.hasAttribute("data-nosort")?"":t.hasAttribute("data-grp")?(t.dataset.tid==="top7"?"Tap + to open a ward. Tap a pocket to see its complaints":"Tap + to open a row. Tap a column heading to sort"):"Click a column heading to sort"}</span><span><span class="msg"></span> ${t.hasAttribute("data-grp")?`<button class="btn" data-expand="${esc(t.dataset.tid)}">Open all</button> <button class="btn" data-collapse="${esc(t.dataset.tid)}">Close all</button> `:""}<button class="btn" data-copy="${esc(t.dataset.tid)}">Copy table</button></span>`;
       host.parentElement.insertBefore(bar,host)}
     applySort(t);
   });
 }
 function tableData(t){
   const rows=[[...t.tHead.rows[0].cells].map(c=>c.textContent.trim())];
-  for(const r of t.tBodies[0].rows){if(r.classList.contains("det"))continue;rows.push([...r.cells].map(c=>c.textContent.replace(/\s+/g," ").trim()))}
+  for(const r of t.tBodies[0].rows){if(r.classList.contains("det"))continue;const sub=r.classList.contains("sub");rows.push([...r.cells].map((c,i)=>(sub&&i===0?"    ":"")+c.textContent.replace(/\s+/g," ").trim()))}
   return rows;
 }
 async function copyTable(t,msg){
@@ -648,7 +758,7 @@ function buildWorkbook(){
   const cmp=(first,rows,tot)=>{const ta=rows.reduce((s,r)=>s+r.a,0),tb=rows.reduce((s,r)=>s+r.b,0);
     return [[first,la,lb,"Change","% Change"],...rows.map(r=>[r.label,r.a,r.b,r.b-r.a,pn(r.a,r.b)]),[tot,ta,tb,tb-ta,pn(ta,tb)]]};
   const add=(name,a,cols)=>{const ws=XLSX.utils.aoa_to_sheet(a);ws["!cols"]=cols.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,name)};
-  let a=[["Weekly complaint comparison"],["Previous: "+la,"","Current: "+lb],["Filters: "+filterText()],[],["Key observations"]];
+  let a=[["Daily complaint comparison"],["Previous: "+la,"","Current: "+lb],["Filters: "+filterText()],[],["Key observations"]];
   observations(m).forEach(o=>a.push([o]));a.push([]);
   a.push(["By complaint type"],...cmp("Complaint type",m.probs,"Grand Total"),[]);
   a.push(["By department"],...cmp("Department",m.depts,"Total"),[]);
@@ -656,13 +766,22 @@ function buildWorkbook(){
   for(const d of m.byDept){a.push([d.label,d.a,d.b,d.b-d.a,pn(d.a,d.b)]);d.rows.forEach(r=>a.push(["    "+r.label,r.a,r.b,r.b-r.a,pn(r.a,r.b)]))}
   a.push(["Total",m.ta,m.tb,m.tb-m.ta,pn(m.ta,m.tb)],[]);
   a.push(["By ward"],...cmp("Ward",m.wards,"Total"),[]);
+  a.push(["By ward and complaint type"],["Ward / Complaint type",la,lb,"Change","% Change"]);
+  for(const w of m.byWard){a.push([w.label,w.a,w.b,w.b-w.a,pn(w.a,w.b)]);w.rows.forEach(r=>a.push(["    "+r.label,r.a,r.b,r.b-r.a,pn(r.a,r.b)]))}
+  a.push(["Total",m.ta,m.tb,m.tb-m.ta,pn(m.ta,m.tb)],[]);
   for(const p of m.byProb)a.push([p.label],...cmp("Ward",p.rows,"Total"),[]);
   add("Comparison",a,[32,16,16,10,10]);
   const P=pockets(m,"B",2);
-  a=[["Pocket areas, "+lb+" (2 or more complaints)"],["Filters: "+filterText()],["Rank","Pocket area","Ward","Complaints",la,"Change","Pending","SLA passed","Same-spot complaints","Main problems"]];
-  P.list.forEach((p,i)=>a.push([i+1,p.area,p.ward,p.n,p.prev,p.n-p.prev,p.pending,p.slaPassed,p.repeatRows,p.probs.map(([k,n])=>k+" "+n).join(", ")]));
+  a=[["Pocket areas, "+lb+" (2 or more complaints)"],["Filters: "+filterText()],["Rank","Pocket area","Ward","Complaints",la,"Change","Trend","Pending","SLA passed","Same-spot complaints","Main problems"]];
+  P.list.forEach((p,i)=>a.push([i+1,p.area,p.ward,p.n,p.prev,p.n-p.prev,TRENDS[p.trend].replace(/^\S+\s/,""),p.pending,p.slaPassed,p.repeatRows,p.probs.map(([k,n])=>k+" "+n).join(", ")]));
   a.push([],["Complaints in pockets",P.inPockets],["Complaints without a clear area",P.unassigned.length],["Total",P.total]);
-  add("Pocket areas",a,[6,40,18,11,14,8,9,10,12,60]);
+  add("Pocket areas",a,[6,40,18,11,14,8,10,9,10,12,60]);
+  {const sv=S.pk.period;S.pk.period="B";const P1=pockets(m,"B",S.pk.min);const T=top7Data(m,P1);S.pk.period=sv;
+   a=[[(S.pk.topN?"Top "+S.pk.topN+" pocket areas":"All pocket areas")+" per ward, "+lb],["Filters: "+filterText()],["Ward","Rank","Pocket area","Complaints",la,"Change","Trend","Pending","Main problems"]];
+   for(const w of T.wards){a.push([w.ward,"","Ward total",w.n,w.prev,w.n-w.prev,"",w.pending,""]);
+     w.top.forEach((p,i)=>a.push(["",i+1,p.area,p.n,p.prev,p.n-p.prev,TRENDS[p.trend].replace(/^\S+\s/,""),p.pending,p.probs.map(([k,n])=>k+" "+n).join(", ")]))}
+   if(T.none.length)a.push([],["Wards with no pocket area: "+T.none.join(", ")]);
+   add("Ward-wise pockets",a,[20,6,40,11,14,8,10,9,60])}
   a=[["Pocket area","Ward","Registration Date","Complaint No.","Problem","Status","SLA Status","Location Address"]];
   P.list.forEach(p=>p.list.forEach(r=>a.push([p.area,p.ward,r.date,r.complaint,r.problem,r.status,r.sla,r.addr])));
   add("Pocket details",a,[36,18,14,18,28,10,12,90]);
@@ -716,6 +835,7 @@ $("fileList").addEventListener("click",async e=>{const i=e.target.dataset.rm;if(
   S.files.splice(+i,1);rebuild(true)});
 for(const [id,p,k] of [["aFrom","A","from"],["aTo","A","to"],["bFrom","B","from"],["bTo","B","to"]])
   $(id).addEventListener("change",e=>{S[p][k]=e.target.value;render()});
+$("quick").addEventListener("click",e=>{const b=e.target.closest("[data-days]");if(b)setLastDays(+b.dataset.days)});
 const fl=$("filters");
 fl.addEventListener("change",e=>{const t=e.target;if(t.type!=="checkbox")return;const s=S.ex[t.dataset.key];t.checked?s.delete(t.value):s.add(t.value);render()});
 fl.addEventListener("click",e=>{
@@ -732,15 +852,21 @@ document.querySelector(".tabs").addEventListener("click",e=>{const t=e.target.cl
 const view=$("view");
 view.addEventListener("change",e=>{
   if(e.target.id==="pkPeriod"){S.pk.period=e.target.value;S.pk.open.clear();render()}
-  if(e.target.id==="pkMin"){S.pk.min=+e.target.value;render()}});
+  if(e.target.id==="pkMin"){S.pk.min=+e.target.value;render()}
+  if(e.target.id==="pkTop"){S.pk.topN=+e.target.value;render()}});
 function togglePk(tr){const k=tr.dataset.pk;S.pk.open.has(k)?S.pk.open.delete(k):S.pk.open.add(k);render()}
 view.addEventListener("click",e=>{
   const cb=e.target.closest("[data-copy]");
   if(cb){const t=[...view.querySelectorAll("table[data-tid]")].find(x=>x.dataset.tid===cb.dataset.copy);if(t)copyTable(t,cb.parentElement.querySelector(".msg"));return}
   const th=e.target.closest("table[data-tid]:not([data-nosort]) thead th");
   if(th){const t=th.closest("table");const tid=t.dataset.tid;const col=th.cellIndex;const cur=S.sort[tid];
-    const firstNum=[...t.tBodies[0].rows].filter(r=>!r.classList.contains("tot")&&!r.classList.contains("det")).every(r=>numOf(cellVal(r.cells[col]||{dataset:{},textContent:""}))!==null);
+    const firstNum=[...t.tBodies[0].rows].filter(r=>!r.classList.contains("tot")&&!r.classList.contains("det")&&!r.classList.contains("sub")).every(r=>numOf(cellVal(r.cells[col]||{dataset:{},textContent:""}))!==null);
     S.sort[tid]=cur&&cur.col===col?{col,dir:-cur.dir}:{col,dir:firstNum?-1:1};applySort(t);return}
+  const ex=e.target.closest("[data-expand],[data-collapse]");
+  if(ex){const tid=ex.dataset.expand||ex.dataset.collapse;const t=[...view.querySelectorAll("table[data-grp]")].find(x=>x.dataset.tid===tid);
+    if(t)[...t.querySelectorAll("tr.grp")].forEach(r=>setGroup(t,r.dataset.g,!!ex.dataset.expand));return}
+  const pv=e.target.closest("[data-pkview]");if(pv){S.pk.view=pv.dataset.pkview;render();return}
+  const gr=e.target.closest("tr.grp");if(gr){setGroup(gr.closest("table"),gr.dataset.g,!gr.classList.contains("open"));return}
   const tr=e.target.closest("tr.pk");if(tr){togglePk(tr);return}
   if(e.target.id==="pkNone"){S.pk.open.has("__none")?S.pk.open.delete("__none"):S.pk.open.add("__none");render();return}
   if(e.target.id==="rulesSave"){const t=$("rulesTa").value;
@@ -750,6 +876,7 @@ view.addEventListener("click",e=>{
     (async()=>{try{if(SHARED)await api("rules",{method:"DELETE"});else localStorage.removeItem("pocketRules")}catch(err){$("rulesMsg").textContent="Not reset: "+err.message;return}
       S.rules=DEFAULT_RULES;S.pk.rulesOpen=true;assignAreas([...S.rows.values()],S.rules);render();$("rulesMsg").textContent="Default rules restored.";})();return}
 });
+view.addEventListener("keydown",e=>{const gr=e.target.closest&&e.target.closest("tr.grp");if(gr&&(e.key==="Enter"||e.key===" ")){e.preventDefault();setGroup(gr.closest("table"),gr.dataset.g,!gr.classList.contains("open"));return}});
 view.addEventListener("keydown",e=>{const tr=e.target.closest&&e.target.closest("tr.pk");if(tr&&(e.key==="Enter"||e.key===" ")){e.preventDefault();togglePk(tr);const n=view.querySelector(`tr.pk[data-pk="${CSS.escape(tr.dataset.pk)}"]`);if(n)n.focus()}});
 view.addEventListener("toggle",e=>{if(e.target.id==="rulesBox")S.pk.rulesOpen=e.target.open},true);
 loadShared();
